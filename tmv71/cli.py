@@ -59,3 +59,21 @@ def write(ctx, input):
             ctx.obj.write_memory(input)
         except device.CommunicationError as err:
             raise click.ClickException(str(err))
+
+
+@main.command('id')
+@click.pass_context
+def get_id(ctx):
+    res = ctx.obj.send_command(b'ID')
+    print(res[0].decode('ascii'))
+
+
+@main.command()
+@click.argument('command')
+@click.argument('args', nargs=-1)
+@click.pass_context
+def raw(ctx, command, args):
+    command = command.encode('ascii')
+    args = [arg.encode('ascii') for arg in args]
+    res = ctx.obj.send_command(command, *args)
+    print(' '.join(p.decode('ascii') for p in res))
