@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 
-from tmv71 import device
+from tmv71 import api
 
 LOG = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ def main(ctx, port, speed, verbose, no_clear):
 
     logging.basicConfig(level=loglevel)
 
-    ctx.obj = device.TMV71(port, speed=speed, debug=(verbose > 2))
+    ctx.obj = api.TMV71(port, speed=speed, debug=(verbose > 2))
 
     if not no_clear:
         LOG.info('clearing communication channel')
@@ -52,7 +52,7 @@ def read(ctx, output):
         with output:
             try:
                 ctx.obj.read_memory(output)
-            except device.CommunicationError as err:
+            except api.CommunicationError as err:
                 raise click.ClickException(str(err))
     except Exception:
         if output is not sys.stdout:
@@ -72,7 +72,7 @@ def write(ctx, input):
     with input:
         try:
             ctx.obj.write_memory(input)
-        except device.CommunicationError as err:
+        except api.CommunicationError as err:
             raise click.ClickException(str(err))
 
 
@@ -220,10 +220,10 @@ def ptt(ctx, ptt_state):
 
 
 @main.command()
-@click.option('--vfo', 'mode', flag_value=device.BAND_MODE.VFO)
-@click.option('--mem', '--memory', 'mode', flag_value=device.BAND_MODE.MEM)
-@click.option('--call', 'mode', flag_value=device.BAND_MODE.CALL)
-@click.option('--wx', '--weather', 'mode', flag_value=device.BAND_MODE.WX)
+@click.option('--vfo', 'mode', flag_value=api.BAND_MODE.VFO)
+@click.option('--mem', '--memory', 'mode', flag_value=api.BAND_MODE.MEM)
+@click.option('--call', 'mode', flag_value=api.BAND_MODE.CALL)
+@click.option('--wx', '--weather', 'mode', flag_value=api.BAND_MODE.WX)
 @click.argument('band')
 @click.pass_context
 def band_mode(ctx, mode, band):
@@ -239,9 +239,9 @@ def band_mode(ctx, mode, band):
 
 
 @main.command()
-@click.option('--low', 'power', flag_value=device.TX_POWER.LOW)
-@click.option('--medium', '--med', 'power', flag_value=device.TX_POWER.MED)
-@click.option('--high', 'power', flag_value=device.TX_POWER.HIGH)
+@click.option('--low', 'power', flag_value=api.TX_POWER.LOW)
+@click.option('--medium', '--med', 'power', flag_value=api.TX_POWER.MED)
+@click.option('--high', 'power', flag_value=api.TX_POWER.HIGH)
 @click.argument('band')
 @click.pass_context
 def txpower(ctx, power, band):
