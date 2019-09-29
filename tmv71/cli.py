@@ -12,8 +12,9 @@ LOG = logging.getLogger(__name__)
 @click.option('-p', '--port', default='/dev/ttyS0')
 @click.option('-s', '--speed', default=9600)
 @click.option('-v', '--verbose', count=True)
+@click.option('-K', '--no-clear', is_flag=True)
 @click.pass_context
-def main(ctx, port, speed, verbose):
+def main(ctx, port, speed, verbose, no_clear):
     try:
         loglevel = ['WARNING', 'INFO', 'DEBUG'][verbose]
     except IndexError:
@@ -22,6 +23,10 @@ def main(ctx, port, speed, verbose):
     logging.basicConfig(level=loglevel)
 
     ctx.obj = device.TMV71(port, speed=speed)
+
+    if not no_clear:
+        LOG.info('clearing communication channel')
+        ctx.obj.clear()
 
 
 @main.command()
