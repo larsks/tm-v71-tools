@@ -38,6 +38,7 @@ class TMV71:
         self.init_serial()
 
     def init_serial(self):
+        LOG.info('opening %s at %d bps', self.dev, self.speed)
         self._port = serial.Serial(self.dev,
                                    baudrate=self.speed,
                                    rtscts=True,
@@ -79,6 +80,7 @@ class TMV71:
         return self.read_line()
 
     def send_command(self, command, *args):
+        LOG.debug('sending command: %s %s', command, args)
         res = self.send_command_raw(command, *args)
 
         if res == b'?':
@@ -169,6 +171,7 @@ class TMV71:
             self.write_block(0, 4, fd.read(0xfc))
 
             for block in range(1, 0x7F):
+                LOG.debug('writing block %d', block)
                 data = fd.read(256)
                 self.write_block(block, 0, data)
 
