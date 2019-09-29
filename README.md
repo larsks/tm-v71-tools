@@ -1,5 +1,23 @@
 # A CLI and Python API for managing your TM-V71 radio
 
+## Requirements
+
+You will need Python 3.7 (or later), and recent versions of the `setuptools` package (and probably `pip`).
+
+## Installation
+
+You can install this from PyPI using `pip`:
+
+```
+pip install tmv71-tools
+```
+
+Or you can install it straight from the GitHub repository:
+
+```
+pip install git+https://github.com/larsks/tm-v71-tools
+```
+
 ## Available commands
 
 - `band-mode`
