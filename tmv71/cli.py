@@ -1,5 +1,6 @@
 import click
 import logging
+import os
 import sys
 
 from tmv71 import device
@@ -29,11 +30,17 @@ def main(ctx, port, speed, verbose):
 def read(ctx, output):
     ctx.obj.check_id()
     LOG.info('read from radio to file "%s"', output.name)
-    with output:
-        try:
-            ctx.obj.read_memory(output)
-        except device.CommunicationError as err:
-            raise click.ClickException(str(err))
+    try:
+        with output:
+            try:
+                ctx.obj.read_memory(output)
+            except device.CommunicationError as err:
+                raise click.ClickException(str(err))
+    except Exception:
+        if output is not sys.stdout:
+            LOG.warning('removing output file %s', output.name)
+            os.unlink(output.name)
+        raise
 
 
 @main.command()
