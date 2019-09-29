@@ -8,7 +8,7 @@ from tmv71 import device
 LOG = logging.getLogger(__name__)
 
 
-@click.group()
+@click.group(context_settings=dict(auto_envvar_prefix='TMV71'))
 @click.option('-p', '--port', default='/dev/ttyS0')
 @click.option('-s', '--speed', default=9600)
 @click.option('-v', '--verbose', count=True)
