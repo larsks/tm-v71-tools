@@ -205,6 +205,22 @@ class TMV71:
         return response.FO_Response(
             self.send_command('FO', *settings.as_tuple()))
 
+    def get_channel_entry(self, channel):
+        channel = '{:03d}'.format(channel)
+        return response.ME_Response(self.send_command('ME', channel))
+
+    def set_channel_entry(self, channel, settings):
+        settings['index'] = '{:03d}'.format(channel)
+        return self.send_command('ME', *settings.as_tuple())
+
+    def get_channel_name(self, channel):
+        channel = '{:03d}'.format(int(channel))
+        return self.send_command('MN', channel)
+
+    def set_channel_name(self, channel, name):
+        channel = '{:03d}'.format(int(channel))
+        return self.send_command('MN', channel, name)
+
     # ----------------------------------------------------------------------
 
     def enter_programming_mode(self):

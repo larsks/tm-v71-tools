@@ -4,6 +4,7 @@ import os
 import sys
 
 from tmv71 import api
+from tmv71 import response
 
 LOG = logging.getLogger(__name__)
 
@@ -256,21 +257,60 @@ def txpower(ctx, power, band):
     print(*res)
 
 
+def apply_channel_options(f):
+    options = [
+        click.option('--rx-freq', '--rx', type=float),
+        click.option('--tx-freq', '--tx', type=float),
+        click.option('--step', type=float),
+        click.option('--shift', type=click.Choice(response.SHIFT_DIR)),
+        click.option('--reverse', type=int),
+        click.option('--tone-status', type=int),
+        click.option('--ctcss-status', type=int),
+        click.option('--dcs-status', type=int),
+        click.option('--tone-freq', type=float),
+        click.option('--ctcss-freq', type=float),
+        click.option('--dcs-freq', type=int),
+        click.option('--offset', type=float),
+        click.option('--mode', type=click.Choice(response.MODE)),
+        click.option('--lockout/--no-lockout', is_flag=True, default=None),
+    ]
+
+    for option in reversed(options):
+        f = option(f)
+
+    return f
+
+
 @main.command()
+@apply_channel_options
 @click.pass_context
-@click.option('--rx-freq', '--rx', type=float)
 @click.argument('band')
-def tune(ctx, rx_freq, band):
-    setting_values = False
-    res = ctx.obj.get_band_vfo(band)
+def tune(ctx, band, **kwargs):
+    print('Not implemented')
 
-    for param in ['rx_freq']:
-        if ctx.params[param] is not None:
-            LOG.debug('setting %s = %s', param, ctx.params[param])
-            setting_values = True
-            res[param] = ctx.params[param]
 
-    if setting_values:
-        res = ctx.obj.set_band_vfo(band, res)
+@main.command()
+@apply_channel_options
+@click.option('-n', '--name')
+@click.argument('channel', type=int)
+@click.pass_context
+def entry(ctx, channel, name, **kwargs):
+    '''View or edit memory channels'''
 
-    print(fmt_dict(res))
+    res = ctx.obj.get_channel_entry(channel)
+
+    set_radio = False
+    for k, v in kwargs.items():
+        if v is None:
+            continue
+
+        set_radio = True
+        res[k] = v
+
+    if name is not None:
+        ctx.obj.set_channel_name(channel, name)
+
+    if set_radio:
+        res = ctx.obj.set_channel_entry(channel, res)
+    else:
+        print(fmt_dict(res))

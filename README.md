@@ -24,6 +24,7 @@ pip install git+https://github.com/larsks/tm-v71-tools
 - `channel`
 - `control-band`
 - `dual-band`
+- `entry`
 - `firmware`
 - `id`
 - `poweron-message`
@@ -88,6 +89,30 @@ Options:
   -1, --single
   -2, --dual
   --help        Show this message and exit.
+```
+
+### entry
+
+```
+Usage: tmv71 entry [OPTIONS] CHANNEL
+
+Options:
+  --rx-freq, --rx FLOAT
+  --tx-freq, --tx FLOAT
+  --step FLOAT
+  --shift [N|+|-|S]
+  --reverse INTEGER
+  --tone-status INTEGER
+  --ctcss-status INTEGER
+  --dcs-status INTEGER
+  --tone-freq FLOAT
+  --ctcss-freq FLOAT
+  --dcs-freq INTEGER
+  --offset FLOAT
+  --mode [FM|AM|NFM]
+  --lockout / --no-lockout
+  -n, --name TEXT
+  --help                    Show this message and exit.
 ```
 
 ### firmware
@@ -177,7 +202,20 @@ Usage: tmv71 tune [OPTIONS] BAND
 
 Options:
   --rx-freq, --rx FLOAT
-  --help                 Show this message and exit.
+  --tx-freq, --tx FLOAT
+  --step FLOAT
+  --shift [N|+|-|S]
+  --reverse INTEGER
+  --tone-status INTEGER
+  --ctcss-status INTEGER
+  --dcs-status INTEGER
+  --tone-freq FLOAT
+  --ctcss-freq FLOAT
+  --dcs-freq INTEGER
+  --offset FLOAT
+  --mode [FM|AM|NFM]
+  --lockout / --no-lockout
+  --help                    Show this message and exit.
 ```
 
 ### txpower
