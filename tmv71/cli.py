@@ -70,6 +70,19 @@ def write(ctx, input):
             raise click.ClickException(str(err))
 
 
+@main.command()
+@click.argument('block', type=int)
+@click.argument('offset', type=int, default=0, required=False)
+@click.argument('length', type=int, default=0, required=False)
+@click.pass_context
+def read_block(ctx, block, offset, length):
+    try:
+        ctx.obj.enter_programming_mode()
+        sys.stdout.buffer.write(ctx.obj.read_block(block, offset, length))
+    finally:
+        ctx.obj.exit_programming_mode()
+
+
 @main.command('id')
 @click.pass_context
 def get_id(ctx):

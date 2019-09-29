@@ -214,7 +214,7 @@ class TMV71:
             raise UnexpectedResponseError()
 
     def read_block(self, block, offset, length):
-        self.write_bytes(bytes([ord('R'), block, 0, length]))
+        self.write_bytes(bytes([ord('R'), block, offset, length]))
         self.read_bytes(4)
         data = self.read_bytes(length if length else 256)
         self.write_bytes(bytes([6]))
