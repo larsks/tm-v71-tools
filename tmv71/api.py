@@ -216,7 +216,10 @@ class TMV71:
 
     def delete_channel_entry(self, channel):
         channel = '{:03d}'.format(channel)
-        return self.send_command('ME', '')
+        try:
+            return self.send_command('ME', channel, '')
+        except InvalidCommandError:
+            return ['']
 
     def get_channel_name(self, channel):
         channel = '{:03d}'.format(int(channel))
