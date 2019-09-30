@@ -213,6 +213,10 @@ class TMV71:
         settings['index'] = '{:03d}'.format(channel)
         return self.send_command('ME', *settings.as_tuple())
 
+    def delete_channel_entry(self, channel):
+        channel = '{:03d}'.format(channel)
+        return self.send_command('ME', '')
+
     def get_channel_name(self, channel):
         channel = '{:03d}'.format(int(channel))
         return self.send_command('MN', channel)
