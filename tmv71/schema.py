@@ -19,7 +19,6 @@ STEP_SIZE = [
 ]
 
 TONE_FREQUENCY = [
-    0,
     67,
     69.3,
     71.9,
@@ -65,7 +64,6 @@ TONE_FREQUENCY = [
 ]
 
 DCS_FREQUENCY = [
-    0,
     23,
     25,
     26,
