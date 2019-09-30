@@ -1,3 +1,4 @@
+import binascii
 import click
 import csv
 import logging
@@ -40,57 +41,6 @@ def raw(ctx, command, args):
 
     res = ctx.obj.send_command(command, *args)
     print(*res)
-
-
-@main.command()
-@click.option('-o', '--output', type=click.File('wb'), default=sys.stdout)
-@click.pass_context
-def read(ctx, output):
-    '''Read radio memory and write it to a file.'''
-
-    ctx.obj.check_id()
-    LOG.info('read from radio to file "%s"', output.name)
-    try:
-        with output:
-            try:
-                ctx.obj.read_memory(output)
-            except api.CommunicationError as err:
-                raise click.ClickException(str(err))
-    except Exception:
-        if output is not sys.stdout:
-            LOG.warning('removing output file %s', output.name)
-            os.unlink(output.name)
-        raise
-
-
-@main.command()
-@click.option('-i', '--input', type=click.File('rb'), default=sys.stdin)
-@click.pass_context
-def write(ctx, input):
-    '''Read memory dump from a file and write it to the radio.'''
-
-    ctx.obj.check_id()
-    LOG.info('write to radio from file "%s"', input.name)
-    with input:
-        try:
-            ctx.obj.write_memory(input)
-        except api.CommunicationError as err:
-            raise click.ClickException(str(err))
-
-
-@main.command()
-@click.argument('block', type=int)
-@click.argument('offset', type=int, default=0, required=False)
-@click.argument('length', type=int, default=0, required=False)
-@click.pass_context
-def read_block(ctx, block, offset, length):
-    '''Read a memory block from the radio and dump it to stdout.'''
-
-    try:
-        ctx.obj.enter_programming_mode()
-        sys.stdout.buffer.write(ctx.obj.read_block(block, offset, length))
-    finally:
-        ctx.obj.exit_programming_mode()
 
 
 @main.command('id')
@@ -390,3 +340,97 @@ def import_channels(ctx, input, sync):
 def set_port_speed(ctx, speed):
     LOG.info('setting port speed to %d bps', speed)
     ctx.obj.set_port_speed(speed)
+
+
+@main.group()
+def memory():
+    pass
+
+
+@memory.command()
+@click.option('-o', '--output', type=click.File('wb'),
+              default=sys.stdout.buffer)
+@click.pass_context
+def read(ctx, output):
+    '''Read radio memory and write it to a file.'''
+
+    LOG.info('read from radio to file "%s"', output.name)
+    try:
+        with output:
+            try:
+                ctx.obj.read_memory(output)
+            except api.CommunicationError as err:
+                raise click.ClickException(str(err))
+    except Exception:
+        if output is not sys.stdout.buffer:
+            LOG.warning('removing output file %s', output.name)
+            os.unlink(output.name)
+        raise
+
+
+@memory.command()
+@click.option('-i', '--input', type=click.File('rb'), default=sys.stdin)
+@click.pass_context
+def write(ctx, input):
+    '''Read memory dump from a file and write it to the radio.'''
+
+    LOG.info('write to radio from file "%s"', input.name)
+    with input:
+        try:
+            ctx.obj.write_memory(input)
+        except api.CommunicationError as err:
+            raise click.ClickException(str(err))
+
+
+@memory.command()
+@click.option('-o', '--output', type=click.File('wb'),
+              default=sys.stdout.buffer)
+@click.argument('block', type=int)
+@click.argument('offset', type=int, default=0, required=False)
+@click.argument('length', type=int, default=0, required=False)
+@click.pass_context
+def read_block(ctx, output, block, offset, length):
+    '''Read a memory block from the radio.'''
+
+    LOG.info('reading %d bytes of memory from block %d offset %d',
+             256 if length == 0 else length, block, offset)
+    try:
+        with output:
+            ctx.obj.enter_programming_mode()
+            output.write(ctx.obj.read_block(block, offset, length))
+    finally:
+        ctx.obj.exit_programming_mode()
+
+
+@memory.command()
+@click.option('-i', '--input', type=click.File('rb'))
+@click.option('-d', '--hexdata')
+@click.argument('block', type=int)
+@click.argument('offset', type=int, default=0, required=False)
+@click.argument('length', type=int, default=0, required=False)
+@click.pass_context
+def write_block(ctx, input, hexdata, block, offset, length):
+    '''Read a memory block from the radio.'''
+
+    if hexdata:
+        data = binascii.unhexlify(hexdata)
+    elif input:
+        with input:
+            data = input.read()
+    else:
+        raise click.ClickException('No data')
+
+    datalen = len(data)
+    if datalen > 256:
+        raise ValueError('Data too large')
+    elif datalen == 256:
+        datalen = 0
+
+    LOG.info('writing %d bytes of data to block %d offset %d',
+             256 if datalen == 0 else datalen, block, offset)
+
+    try:
+        ctx.obj.enter_programming_mode()
+        ctx.obj.write_block(block, offset, data)
+    finally:
+        ctx.obj.exit_programming_mode()
