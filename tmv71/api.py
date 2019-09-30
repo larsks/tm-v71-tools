@@ -7,6 +7,9 @@ import sys
 from tmv71 import schema
 
 LOG = logging.getLogger(__name__)
+PORT_SPEED = ['9600', '19200', '38400', '57600']
+
+M_OFFSET_PORT_SPEED = 0x21
 
 
 class BAND_MODE(enum.IntEnum):
@@ -230,6 +233,15 @@ class TMV71:
         channel = '{:03d}'.format(int(channel))
         res = self.send_command('MN', channel, name)
         return res[1]
+
+    def set_port_speed(self, speed):
+        speed = PORT_SPEED.index(speed)
+
+        try:
+            self.enter_programming_mode()
+            self.write_block(0, M_OFFSET_PORT_SPEED, bytes([speed]))
+        finally:
+            self.exit_programming_mode()
 
     # ----------------------------------------------------------------------
 

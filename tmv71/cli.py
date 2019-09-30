@@ -382,3 +382,11 @@ def import_channels(ctx, input, sync):
 
                 ctx.obj.set_channel_entry(channel, channel_config)
                 ctx.obj.set_channel_name(channel, channel_name)
+
+
+@main.command()
+@click.argument('speed', type=click.Choice(api.PORT_SPEED))
+@click.pass_context
+def set_port_speed(ctx, speed):
+    LOG.info('setting port speed to %d bps', speed)
+    ctx.obj.set_port_speed(speed)
