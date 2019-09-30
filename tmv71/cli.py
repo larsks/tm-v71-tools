@@ -1,4 +1,5 @@
 import click
+import csv
 import logging
 import os
 import sys
@@ -332,3 +333,47 @@ def entry(ctx, channel, name, **kwargs):
         res = ctx.obj.set_channel_entry(channel, res)
     else:
         print(fmt_dict(res))
+
+
+@main.command()
+@click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
+@click.pass_context
+def export_channels(ctx, output):
+    with output:
+        csvout = csv.writer(output)
+        for channel in range(1000):
+            LOG.info('getting information for channel %d', channel)
+
+            try:
+                channel_config = ctx.obj.get_channel_entry(channel)
+                channel_name = ctx.obj.get_channel_name(channel)
+                csvout.writerow(schema.ME.to_tuple(channel_config)
+                                + [channel_name])
+            except api.InvalidCommandError:
+                LOG.debug('channel %d does not exist', channel)
+                continue
+
+
+@main.command()
+@click.option('-i', '--input', type=click.File('r'), default=sys.stdin)
+@click.option('-s', '--sync', is_flag=True)
+@click.pass_context
+def import_channels(ctx, input, sync):
+    with input:
+        csvin = csv.reader(input)
+        channels = {}
+        for row in csvin:
+            channels[int(row[0])] = row
+
+        for channel in range(1000):
+            if channel not in channels:
+                if sync:
+                    LOG.info('deleting channel %d', channel)
+                    ctx.obj.delete_channel_entry(channel)
+            else:
+                LOG.info('setting information for channel %d', channel)
+                channel_config = schema.ME.from_tuple(channels[channel][:-1])
+                channel_name = channels[channel][-1]
+
+                ctx.obj.set_channel_entry(channel, channel_config)
+                ctx.obj.set_channel_name(channel, channel_name)
