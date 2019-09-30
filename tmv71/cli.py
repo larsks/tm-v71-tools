@@ -36,7 +36,7 @@ def main(ctx, port, speed, verbose, no_clear):
 @click.argument('args', nargs=-1)
 @click.pass_context
 def raw(ctx, command, args):
-    '''Send a raw command to the radio and display the response'''
+    '''Send a raw command to the radio and display the response.'''
 
     res = ctx.obj.send_command(command, *args)
     print(*res)
@@ -46,7 +46,7 @@ def raw(ctx, command, args):
 @click.option('-o', '--output', type=click.File('wb'), default=sys.stdout)
 @click.pass_context
 def read(ctx, output):
-    '''Read radio memory and write it to a file'''
+    '''Read radio memory and write it to a file.'''
 
     ctx.obj.check_id()
     LOG.info('read from radio to file "%s"', output.name)
@@ -67,7 +67,7 @@ def read(ctx, output):
 @click.option('-i', '--input', type=click.File('rb'), default=sys.stdin)
 @click.pass_context
 def write(ctx, input):
-    '''Read memory dump from a file and write it to the radio'''
+    '''Read memory dump from a file and write it to the radio.'''
 
     ctx.obj.check_id()
     LOG.info('write to radio from file "%s"', input.name)
@@ -84,7 +84,7 @@ def write(ctx, input):
 @click.argument('length', type=int, default=0, required=False)
 @click.pass_context
 def read_block(ctx, block, offset, length):
-    '''Read a memory block from the radio and dump it to stdout'''
+    '''Read a memory block from the radio and dump it to stdout.'''
 
     try:
         ctx.obj.enter_programming_mode()
@@ -96,7 +96,7 @@ def read_block(ctx, block, offset, length):
 @main.command('id')
 @click.pass_context
 def get_id(ctx):
-    '''Return the radio model'''
+    '''Return the radio model.'''
 
     res = ctx.obj.radio_id()
     print(res[0])
@@ -109,7 +109,7 @@ def fmt_dict(d):
 @main.command('type')
 @click.pass_context
 def radio_type(ctx):
-    '''Return the radio type'''
+    '''Return the radio type.'''
 
     res = ctx.obj.radio_type()
     print(fmt_dict(res))
@@ -118,7 +118,7 @@ def radio_type(ctx):
 @main.command()
 @click.pass_context
 def firmware(ctx):
-    '''Return information about the radio firmware'''
+    '''Return information about the radio firmware.'''
 
     res = ctx.obj.radio_firmware()
     print(*res)
@@ -128,7 +128,7 @@ def firmware(ctx):
 @click.argument('message', default=None, required=False)
 @click.pass_context
 def poweron_message(ctx, message):
-    '''Get or set the power on message'''
+    '''Get or set the power on message.'''
 
     if message is None:
         res = ctx.obj.get_poweron_message()
@@ -143,7 +143,7 @@ def poweron_message(ctx, message):
 @click.option('-2', '--dual', 'mode', flag_value=2)
 @click.pass_context
 def dual_band(ctx, mode):
-    '''Get or set dual-band mode for the control band'''
+    '''Get or set dual-band mode for the control band.'''
 
     if mode is None:
         res = ctx.obj.get_dual_band_mode()
@@ -171,7 +171,7 @@ def normalize_band(band):
 @click.argument('channel', type=int, required=False)
 @click.pass_context
 def channel(ctx, band, channel):
-    '''Get or set the memory channel for the selected band'''
+    '''Get or set the memory channel for the selected band.'''
 
     band = normalize_band(band)
     if channel is None:
@@ -188,7 +188,7 @@ def channel(ctx, band, channel):
 @click.option('-b', '--both', '--cp', type=int)
 @click.pass_context
 def control_band(ctx, control, ptt, both):
-    '''Select control and ptt band'''
+    '''Select control and ptt band.'''
 
     res = ctx.obj.get_ptt_ctrl_band()
 
@@ -216,7 +216,7 @@ def control_band(ctx, control, ptt, both):
 @click.option('--off', 'ptt_state', flag_value=False, default=False)
 @click.pass_context
 def ptt(ctx, ptt_state):
-    '''Activate or deactivate transmitter'''
+    '''Activate or deactivate transmitter.'''
 
     ctx.obj.set_ptt(ptt_state)
 
@@ -229,7 +229,7 @@ def ptt(ctx, ptt_state):
 @click.argument('band')
 @click.pass_context
 def band_mode(ctx, mode, band):
-    '''Set selected band to VFO, MEM, call channel, or weather'''
+    '''Set selected band to VFO, MEM, call channel, or weather.'''
 
     band = normalize_band(band)
     if mode is None:
@@ -247,7 +247,7 @@ def band_mode(ctx, mode, band):
 @click.argument('band')
 @click.pass_context
 def txpower(ctx, power, band):
-    '''Set tx power for the selected band'''
+    '''Set tx power for the selected band.'''
 
     band = normalize_band(band)
     if power is None:
@@ -314,7 +314,7 @@ def tune(ctx, band, **kwargs):
 @click.argument('channel', type=int)
 @click.pass_context
 def entry(ctx, channel, name, **kwargs):
-    '''View or edit memory channels'''
+    '''View or edit memory channels.'''
 
     res = ctx.obj.get_channel_entry(channel)
 
@@ -339,6 +339,7 @@ def entry(ctx, channel, name, **kwargs):
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
 @click.pass_context
 def export_channels(ctx, output):
+    '''Export channels to a CSV document.'''
     with output:
         csvout = csv.writer(output)
         for channel in range(1000):
@@ -359,6 +360,10 @@ def export_channels(ctx, output):
 @click.option('-s', '--sync', is_flag=True)
 @click.pass_context
 def import_channels(ctx, input, sync):
+    '''Import channels from a CSV document.
+
+    Use --sync to delete channels on the radio that do not exist
+    in the input document.'''
     with input:
         csvin = csv.reader(input)
         channels = {}
