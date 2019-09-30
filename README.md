@@ -370,3 +370,30 @@ The PC port speed is stored as a byte at offset 33 (`0x21`) in block 0. The foll
 ```
 tmv71 memory write-block -d '03' 0 33
 ```
+
+## Author
+
+Lars Kellogg-Stedman <lars@oddbit.com>, N1LKS
+
+If you're around the Boston area, you can sometimes find me on the [MMRA][] or [BARC][] repeaters.
+
+[MMRA]: https://www.mmra.org/
+[BARC]: http://barc.org/
+
+## License
+
+tm-v71-tools - an api and cli for your Kenwood TM-V71  
+Copyright (C) 2019 Lars Kellogg-Stedman
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
