@@ -234,6 +234,15 @@ class TMV71:
         res = self.send_command('MN', channel, name)
         return res[1]
 
+    def get_port_speed(self):
+        try:
+            self.enter_programming_mode()
+            speed = self.read_block(0, M_OFFSET_PORT_SPEED, 1)
+        finally:
+            self.exit_programming_mode()
+
+        return PORT_SPEED[int.from_bytes(speed, byteorder='big')]
+
     def set_port_speed(self, speed):
         speed = PORT_SPEED.index(speed)
 

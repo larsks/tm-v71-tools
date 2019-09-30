@@ -335,11 +335,24 @@ def import_channels(ctx, input, sync):
 
 
 @main.command()
-@click.argument('speed', type=click.Choice(api.PORT_SPEED))
+@click.argument('speed', type=click.Choice(api.PORT_SPEED), required=False)
 @click.pass_context
-def set_port_speed(ctx, speed):
-    LOG.info('setting port speed to %d bps', speed)
-    ctx.obj.set_port_speed(speed)
+def port_speed(ctx, speed):
+    '''Get or set the PC port speed.
+
+    Note that because this command involves reading from/writing to
+    memory directly, it will briefly reset the radio.
+
+    Valid port speeds are 9600, 19200, 38400, and 57600.'''
+
+    if speed is None:
+        LOG.info('getting port speed')
+        speed = ctx.obj.get_port_speed()
+    else:
+        LOG.info('setting port speed to %d bps', speed)
+        ctx.obj.set_port_speed(speed)
+
+    print(speed)
 
 
 @main.group()

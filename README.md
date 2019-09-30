@@ -32,6 +32,7 @@ You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass th
 - [firmware](#firmware)
 - [id](#id)
 - [poweron-message](#poweron-message)
+- [port-speed](#port-speed)
 - [ptt](#ptt)
 - [tune](#tune)
 - [txpower](#txpower)
@@ -152,6 +153,22 @@ Options:
 Usage: tmv71 poweron-message [OPTIONS] [MESSAGE]
 
   Get or set the power on message.
+
+Options:
+  --help  Show this message and exit.
+```
+
+### port-speed
+
+```
+Usage: tmv71 port-speed [OPTIONS] [[9600|19200|38400|57600]]
+
+  Get or set the PC port speed.
+
+  Note that because this command involves reading from/writing to memory
+  directly, it will briefly reset the radio.
+
+  Valid port speeds are 9600, 19200, 38400, and 57600.
 
 Options:
   --help  Show this message and exit.
