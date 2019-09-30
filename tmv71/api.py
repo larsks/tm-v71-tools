@@ -3,7 +3,7 @@ import hexdump
 import logging
 import serial
 
-from tmv71 import response
+from tmv71 import schema
 
 LOG = logging.getLogger(__name__)
 
@@ -139,7 +139,7 @@ class TMV71:
         return self.send_command('ID')
 
     def radio_type(self):
-        return response.TY_Response(self.send_command('TY'))
+        return schema.TY.from_tuple(self.send_command('TY'))
 
     def radio_firmware(self):
         return self.send_command('FV', 0)
@@ -197,21 +197,21 @@ class TMV71:
         return self.send_command('PC', band, power)
 
     def get_band_vfo(self, band):
-        return response.FO_Response(
+        return schema.FO.from_tuple(
             self.send_command('FO', band))
 
     def set_band_vfo(self, band, settings):
         settings['band'] = band
-        return response.FO_Response(
-            self.send_command('FO', *settings.as_tuple()))
+        return schema.FO.from_tuple(
+            self.send_command('FO', schema.FO.to_csv(settings)))
 
     def get_channel_entry(self, channel):
         channel = '{:03d}'.format(channel)
-        return response.ME_Response(self.send_command('ME', channel))
+        return schema.ME.from_tuple(self.send_command('ME', channel))
 
     def set_channel_entry(self, channel, settings):
-        settings['index'] = '{:03d}'.format(channel)
-        return self.send_command('ME', *settings.as_tuple())
+        settings[channel] = channel
+        return self.send_command('ME', schema.ME.to_csv(settings))
 
     def delete_channel_entry(self, channel):
         channel = '{:03d}'.format(channel)
@@ -219,11 +219,13 @@ class TMV71:
 
     def get_channel_name(self, channel):
         channel = '{:03d}'.format(int(channel))
-        return self.send_command('MN', channel)
+        res = self.send_command('MN', channel)
+        return res[1]
 
     def set_channel_name(self, channel, name):
         channel = '{:03d}'.format(int(channel))
-        return self.send_command('MN', channel, name)
+        res = self.send_command('MN', channel, name)
+        return res[1]
 
     # ----------------------------------------------------------------------
 

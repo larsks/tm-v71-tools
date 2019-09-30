@@ -4,7 +4,7 @@ import os
 import sys
 
 from tmv71 import api
-from tmv71 import response
+from tmv71 import schema
 
 LOG = logging.getLogger(__name__)
 
@@ -257,12 +257,30 @@ def txpower(ctx, power, band):
     print(*res)
 
 
+class EnumType(click.ParamType):
+    name = 'enum'
+
+    def __init__(self, _enum, **kwargs):
+        super().__init__(**kwargs)
+        self._enum = _enum
+        self._fwd = {x.name: x for x in _enum}
+        self._rev = {x.value: x for x in _enum}
+
+    def convert(self, value, param, ctx):
+        if value in self._fwd:
+            return self._fwd[value]
+        elif value in self._rev:
+            return self._rev[value]
+        else:
+            raise ValueError(value)
+
+
 def apply_channel_options(f):
     options = [
         click.option('--rx-freq', '--rx', type=float),
         click.option('--tx-freq', '--tx', type=float),
         click.option('--step', type=float),
-        click.option('--shift', type=click.Choice(response.SHIFT_DIR)),
+        click.option('--shift', type=EnumType(schema.ShiftDirection)),
         click.option('--reverse', type=int),
         click.option('--tone-status', type=int),
         click.option('--ctcss-status', type=int),
@@ -271,7 +289,7 @@ def apply_channel_options(f):
         click.option('--ctcss-freq', type=float),
         click.option('--dcs-freq', type=int),
         click.option('--offset', type=float),
-        click.option('--mode', type=click.Choice(response.MODE)),
+        click.option('--mode', type=EnumType(schema.Mode)),
         click.option('--lockout/--no-lockout', is_flag=True, default=None),
     ]
 
