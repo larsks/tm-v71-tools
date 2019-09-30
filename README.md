@@ -18,6 +18,10 @@ Or you can install it straight from the GitHub repository:
 pip install git+https://github.com/larsks/tm-v71-tools
 ```
 
+## Configuration
+
+You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass the `--port` and `--speed` options to the `tmv71` command.
+
 ## Available commands
 
 - [band-mode](#band-mode)
@@ -289,14 +293,40 @@ Options:
 
 <!-- end command docs -->
 
-## Backing up your radio
+## Examples
+
+### Specifying port and speed on the command line
 
 ```
-tmv71 read --port /dev/ttyUSB0 -o backup.dat
+tmv71 --port /dev/ttyS0 --speed 9600 id
+```
+
+### Exporting channels to a CSV
+
+```
+tmv71 export-channels -o channels.csv
+```
+
+### Importing channels from a CSV
+
+```
+tmv71 import-channels -i channels.csv
+```
+
+### Backing up your radio
+
+```
+tmv71 memory read -o backup.dat
 ```
 
 ### Restore from backup
 
 ```
-tmv71 write --port /dev/ttyUSB0 -i backup.dat
+tmv71 memory write -i backup.dat
+```
+
+### Read block 0 from memory
+
+```
+tmv71 memory read-block -o data.bin 0
 ```
