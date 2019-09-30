@@ -33,14 +33,15 @@ You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass th
 - [id](#id)
 - [poweron-message](#poweron-message)
 - [ptt](#ptt)
-- [read-block](#read-block)
 - [tune](#tune)
 - [txpower](#txpower)
 - [type](#type)
 - [export-channels](#export-channels)
 - [import-channels](#import-channels)
-- [read](#read)
-- [write](#write)
+- [memory read](#memory-read)
+- [memory write](#memory-write)
+- [memory read-block](#memory-read-block)
+- [memory write-block](#memory-write-block)
 - [raw](#raw)
 
 <!-- start command docs -->
@@ -169,17 +170,6 @@ Options:
   --help  Show this message and exit.
 ```
 
-### read-block
-
-```
-Usage: tmv71 read-block [OPTIONS] BLOCK [OFFSET] [LENGTH]
-
-  Read a memory block from the radio and dump it to stdout.
-
-Options:
-  --help  Show this message and exit.
-```
-
 ### tune
 
 ```
@@ -256,10 +246,10 @@ Options:
   --help                Show this message and exit.
 ```
 
-### read
+### memory read
 
 ```
-Usage: tmv71 read [OPTIONS]
+Usage: tmv71 memory read [OPTIONS]
 
   Read radio memory and write it to a file.
 
@@ -268,15 +258,40 @@ Options:
   --help                 Show this message and exit.
 ```
 
-### write
+### memory write
 
 ```
-Usage: tmv71 write [OPTIONS]
+Usage: tmv71 memory write [OPTIONS]
 
   Read memory dump from a file and write it to the radio.
 
 Options:
   -i, --input FILENAME
+  --help                Show this message and exit.
+```
+
+### memory read-block
+
+```
+Usage: tmv71 memory read-block [OPTIONS] BLOCK [OFFSET] [LENGTH]
+
+  Read a memory block from the radio.
+
+Options:
+  -o, --output FILENAME
+  --help                 Show this message and exit.
+```
+
+### memory write-block
+
+```
+Usage: tmv71 memory write-block [OPTIONS] BLOCK [OFFSET] [LENGTH]
+
+  Write data to radio memory
+
+Options:
+  -i, --input FILENAME
+  -d, --hexdata TEXT
   --help                Show this message and exit.
 ```
 
@@ -329,4 +344,12 @@ tmv71 memory write -i backup.dat
 
 ```
 tmv71 memory read-block -o data.bin 0
+```
+
+### Set port speed using write-block
+
+The PC port speed is stored as a byte at offset 33 (`0x21`) in block 0. The following command will set the PC port speed to 57600 bps:
+
+```
+tmv71 memory write-block -d '03' 0 33
 ```

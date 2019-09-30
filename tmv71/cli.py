@@ -410,7 +410,7 @@ def read_block(ctx, output, block, offset, length):
 @click.argument('length', type=int, default=0, required=False)
 @click.pass_context
 def write_block(ctx, input, hexdata, block, offset, length):
-    '''Read a memory block from the radio.'''
+    '''Write data to radio memory'''
 
     if hexdata:
         data = binascii.unhexlify(hexdata)
