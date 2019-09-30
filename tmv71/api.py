@@ -2,6 +2,7 @@ import enum
 import hexdump
 import logging
 import serial
+import sys
 
 from tmv71 import schema
 
@@ -63,8 +64,8 @@ class TMV71:
 
     def write_bytes(self, data):
         if self.debug:
-            print('write:')
-            print('\n'.join(hexdump.dumpgen(data)))
+            print('write:', file=sys.stderr)
+            print('\n'.join(hexdump.dumpgen(data)), file=sys.stderr)
         self._port.write(data)
 
     def read_bytes(self, n):
@@ -73,8 +74,8 @@ class TMV71:
             raise ReadTimeoutError()
 
         if self.debug:
-            print('read:')
-            print('\n'.join(hexdump.dumpgen(data)))
+            print('read:', file=sys.stderr)
+            print('\n'.join(hexdump.dumpgen(data)), file=sys.stderr)
         return data
 
     def read_line(self):
@@ -83,8 +84,8 @@ class TMV71:
             raise ReadTimeoutError()
 
         if self.debug:
-            print('read:')
-            print('\n'.join(hexdump.dumpgen(data)))
+            print('read:', file=sys.stderr)
+            print('\n'.join(hexdump.dumpgen(data)), file=sys.stderr)
         return data[:-1]
 
     def send_command_raw(self, command, *args):
