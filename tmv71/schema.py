@@ -1,22 +1,10 @@
 from marshmallow import Schema
 from marshmallow.fields import Field, String, Float, Boolean, Integer
 from marshmallow.validate import OneOf
-from marshmallow_enum import EnumField
-from enum import Enum
 
+BAND_MODE = ['VFO', 'MEM', 'CALL', 'WX']
 
-class BAND_MODE(Enum):
-    VFO = '0'
-    MEM = '1'
-    CALL = '2'
-    WX = '3'
-
-
-class TX_POWER(Enum):
-    LOW = '2'
-    MED = '1'
-    HIGH = '0'
-
+TX_POWER = ['HIGH', 'MED', 'LOW']
 
 STEP_SIZE = [
     5,
@@ -184,12 +172,9 @@ DCS_FREQUENCY = [
     754,
 ]
 
+SHIFT_DIRECTION = ['SIMPLEX', 'UP', 'DOWN', 'SPLIT']
 
-class ShiftDirection(Enum):
-    SIMPLEX = '0'
-    UP = '1'
-    DOWN = '2'
-    SPLIT = '3'
+MODE = ['FM', 'AM', 'NFM']
 
 
 class RadioSchema(Schema):
@@ -217,11 +202,11 @@ class RadioSchema(Schema):
 
         return ','.join(self.to_tuple(obj))
 
+    def to_raw_tuple(self, obj):
+        return [obj[f] for f in self.declared_fields]
 
-class Mode(Enum):
-    FM = '0'
-    AM = '1'
-    NFM = '2'
+    def from_raw_tuple(self, values):
+        return dict(zip(self.declared_fields, values))
 
 
 class Indexed(Field):
@@ -270,8 +255,8 @@ class FormattedInteger(Integer):
 class ME_Schema(RadioSchema):
     channel = FormattedInteger('{:03d}', required=True)
     rx_freq = RadioFloat(required=True)
-    step = Indexed(values=STEP_SIZE, required=True)
-    shift = EnumField(ShiftDirection, by_value=True, required=True)
+    step = Indexed(STEP_SIZE, required=True)
+    shift = Indexed(SHIFT_DIRECTION, required=True)
     reverse = RadioBoolean(required=True)
     tone_status = RadioBoolean(required=True)
     ctcss_status = RadioBoolean(required=True)
@@ -280,9 +265,9 @@ class ME_Schema(RadioSchema):
     ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True)
     dcs_freq = Indexed(values=DCS_FREQUENCY, required=True, fmt='{:03d}')
     offset = RadioFloat(length=8, required=True)
-    mode = EnumField(Mode, by_value=True, required=True)
+    mode = Indexed(MODE, required=True)
     tx_freq = RadioFloat(required=True)
-    unknown = String(missing='0')
+    tx_step = Indexed(STEP_SIZE, required=True)
     lockout = RadioBoolean(required=True)
 
 
@@ -290,7 +275,7 @@ class FO_Schema(RadioSchema):
     band = FormattedInteger(required=True)
     rx_freq = RadioFloat(required=True)
     step = Indexed(values=STEP_SIZE, required=True)
-    shift = EnumField(ShiftDirection, by_value=True, required=True)
+    shift = Indexed(SHIFT_DIRECTION, required=True)
     reverse = RadioBoolean(required=True)
     tone_status = RadioBoolean(required=True)
     ctcss_status = RadioBoolean(required=True)
@@ -299,14 +284,14 @@ class FO_Schema(RadioSchema):
     ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True)
     dcs_freq = Indexed(values=DCS_FREQUENCY, required=True)
     offset = RadioFloat(length=8, required=True)
-    mode = EnumField(Mode, by_value=True, required=True)
+    mode = Indexed(MODE, required=True)
 
 
 class CC_Schema(RadioSchema):
     index = Integer(required=True)
     rx_freq = RadioFloat(required=True)
     step = Indexed(values=STEP_SIZE, required=True)
-    shift = EnumField(ShiftDirection, by_value=True, required=True)
+    shift = Indexed(SHIFT_DIRECTION, required=True)
     reverse = RadioBoolean(required=True)
     tone_status = RadioBoolean(required=True)
     ctcss_status = RadioBoolean(required=True)
@@ -315,7 +300,7 @@ class CC_Schema(RadioSchema):
     ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True)
     dcs_freq = Indexed(values=DCS_FREQUENCY, required=True)
     offset = RadioFloat(length=8, required=True)
-    mode = EnumField(Mode, by_value=True, required=True)
+    mode = Indexed(MODE, required=True)
     tx_freq = RadioFloat(required=True)
     unknown = String(missing='0')
 

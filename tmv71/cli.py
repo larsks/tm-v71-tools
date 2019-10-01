@@ -1,6 +1,6 @@
 import binascii
 import click
-import csv
+import json
 import logging
 import os
 import sys
@@ -172,10 +172,14 @@ def ptt(ctx, ptt_state):
 
 
 @main.command()
-@click.option('--vfo', 'mode', flag_value=schema.BAND_MODE.VFO)
-@click.option('--mem', '--memory', 'mode', flag_value=schema.BAND_MODE.MEM)
-@click.option('--call', 'mode', flag_value=schema.BAND_MODE.CALL)
-@click.option('--wx', '--weather', 'mode', flag_value=schema.BAND_MODE.WX)
+@click.option('--vfo', 'mode',
+              flag_value=schema.BAND_MODE.index('VFO'))
+@click.option('--mem', '--memory', 'mode',
+              flag_value=schema.BAND_MODE.index('MEM'))
+@click.option('--call', 'mode',
+              flag_value=schema.BAND_MODE.index('CALL'))
+@click.option('--wx', '--weather', 'mode',
+              flag_value=schema.BAND_MODE.index('WX'))
 @click.argument('band')
 @click.pass_context
 def band_mode(ctx, mode, band):
@@ -191,9 +195,11 @@ def band_mode(ctx, mode, band):
 
 
 @main.command()
-@click.option('--low', 'power', flag_value=schema.TX_POWER.LOW)
-@click.option('--medium', '--med', 'power', flag_value=schema.TX_POWER.MED)
-@click.option('--high', 'power', flag_value=schema.TX_POWER.HIGH)
+@click.option('--low', 'power', flag_value=schema.TX_POWER.index('LOW'))
+@click.option('--medium', '--med', 'power',
+              flag_value=schema.TX_POWER.index('MED'))
+@click.option('--high', 'power',
+              flag_value=schema.TX_POWER.index('HIGH'))
 @click.argument('band')
 @click.pass_context
 def txpower(ctx, power, band):
@@ -208,30 +214,12 @@ def txpower(ctx, power, band):
     print(*res)
 
 
-class EnumType(click.ParamType):
-    name = 'enum'
-
-    def __init__(self, _enum, **kwargs):
-        super().__init__(**kwargs)
-        self._enum = _enum
-        self._fwd = {x.name: x for x in _enum}
-        self._rev = {x.value: x for x in _enum}
-
-    def convert(self, value, param, ctx):
-        if value in self._fwd:
-            return self._fwd[value]
-        elif value in self._rev:
-            return self._rev[value]
-        else:
-            raise ValueError(value)
-
-
 def apply_channel_options(f):
     options = [
         click.option('--rx-freq', '--rx', type=float),
         click.option('--tx-freq', '--tx', type=float),
         click.option('--step', type=float),
-        click.option('--shift', type=EnumType(schema.ShiftDirection)),
+        click.option('--shift', type=click.Choice(schema.SHIFT_DIRECTION)),
         click.option('--reverse', type=int),
         click.option('--tone-status', type=int),
         click.option('--ctcss-status', type=int),
@@ -240,7 +228,7 @@ def apply_channel_options(f):
         click.option('--ctcss-freq', type=float),
         click.option('--dcs-freq', type=int),
         click.option('--offset', type=float),
-        click.option('--mode', type=EnumType(schema.Mode)),
+        click.option('--mode', type=click.Choice(schema.MODE)),
         click.option('--lockout/--no-lockout', is_flag=True, default=None),
     ]
 
@@ -287,19 +275,39 @@ def entry(ctx, channel, name, **kwargs):
 
 @main.command()
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
+@click.option('-c', '--channels', multiple=True)
 @click.pass_context
-def export_channels(ctx, output):
-    '''Export channels to a CSV document.'''
+def export_channels(ctx, output, channels):
+    '''Export channels to a CSJ document.
+
+    A CSJ document is like a CSV document, but each field is valid JSON.'''
+
+    selected = None
+    if channels:
+        selected = []
+        for channel in channels:
+            if ':' in channel:
+                ch_start, ch_end = (int(x) for x in channel.split(':'))
+                selected.extend(range(ch_start, ch_end + 1))
+            else:
+                selected.append(int(channel))
+
     with output:
-        csvout = csv.writer(output)
+        output.write(','.join(list(schema.ME.declared_fields) + ['name']))
+        output.write('\n')
         for channel in range(1000):
+            if selected is not None and channel not in selected:
+                continue
+
             LOG.info('getting information for channel %d', channel)
 
             try:
                 channel_config = ctx.obj.get_channel_entry(channel)
-                channel_name = ctx.obj.get_channel_name(channel)
-                csvout.writerow(schema.ME.to_tuple(channel_config)
-                                + [channel_name])
+                values = schema.ME.to_raw_tuple(channel_config)
+                values.append(ctx.obj.get_channel_name(channel))
+
+                output.write(','.join(json.dumps(x) for x in values))
+                output.write('\n')
             except api.InvalidCommandError:
                 LOG.debug('channel %d does not exist', channel)
                 continue
@@ -310,15 +318,20 @@ def export_channels(ctx, output):
 @click.option('-s', '--sync', is_flag=True)
 @click.pass_context
 def import_channels(ctx, input, sync):
-    '''Import channels from a CSV document.
+    '''Import channels from a CSJ document.
+
+    A CSJ document is like a CSV document, but each field is valid JSON.
 
     Use --sync to delete channels on the radio that do not exist
     in the input document.'''
     with input:
-        csvin = csv.reader(input)
         channels = {}
-        for row in csvin:
-            channels[int(row[0])] = row
+        for line in input:
+            if line.startswith('channel'):
+                continue
+            line = line.rstrip()
+            values = [json.loads(x) for x in line.split(',')]
+            channels[values[0]] = values
 
         for channel in range(1000):
             if channel not in channels:
@@ -327,7 +340,7 @@ def import_channels(ctx, input, sync):
                     ctx.obj.delete_channel_entry(channel)
             else:
                 LOG.info('setting information for channel %d', channel)
-                channel_config = schema.ME.from_tuple(channels[channel][:-1])
+                channel_config = schema.ME.from_raw_tuple(channels[channel])
                 channel_name = channels[channel][-1]
 
                 ctx.obj.set_channel_entry(channel, channel_config)
