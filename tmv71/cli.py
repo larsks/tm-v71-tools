@@ -408,12 +408,16 @@ def write(ctx, input):
             raise click.ClickException(str(err))
 
 
+def flexint(v):
+    return int(v, 0)
+
+
 @memory.command()
 @click.option('-o', '--output', type=click.File('wb'),
               default=sys.stdout.buffer)
-@click.argument('block', type=int)
-@click.argument('offset', type=int, default=0, required=False)
-@click.argument('length', type=int, default=0, required=False)
+@click.argument('block', type=flexint)
+@click.argument('offset', type=flexint, default='0', required=False)
+@click.argument('length', type=flexint, default='0', required=False)
 @click.pass_context
 def read_block(ctx, output, block, offset, length):
     '''Read a memory block from the radio.'''
@@ -428,9 +432,9 @@ def read_block(ctx, output, block, offset, length):
 @memory.command()
 @click.option('-i', '--input', type=click.File('rb'))
 @click.option('-d', '--hexdata')
-@click.argument('block', type=int)
-@click.argument('offset', type=int, default=0, required=False)
-@click.argument('length', type=int, default=0, required=False)
+@click.argument('block', type=flexint)
+@click.argument('offset', type=flexint, default='0', required=False)
+@click.argument('length', type=flexint, default='0', required=False)
 @click.pass_context
 def write_block(ctx, input, hexdata, block, offset, length):
     '''Write data to radio memory'''
