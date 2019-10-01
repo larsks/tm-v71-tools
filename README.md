@@ -31,6 +31,7 @@ You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass th
 - [dual-band](#dual-band)
 - [entry](#entry)
 - [firmware](#firmware)
+- [frequency-band](#frequency-band)
 - [id](#id)
 - [poweron-message](#poweron-message)
 - [port-speed](#port-speed)
@@ -51,7 +52,7 @@ You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass th
 ### band-mode
 
 ```
-Usage: tmv71 band-mode [OPTIONS] BAND
+Usage: tmv71 band-mode [OPTIONS] [0|A|1|B]
 
   Set selected band to VFO, MEM, call channel, or weather.
 
@@ -66,7 +67,7 @@ Options:
 ### channel
 
 ```
-Usage: tmv71 channel [OPTIONS] [0|1|A|B] [CHANNEL]
+Usage: tmv71 channel [OPTIONS] [0|A|1|B] [CHANNEL]
 
   Get or set the memory channel for the selected band.
 
@@ -138,6 +139,21 @@ Options:
   --help  Show this message and exit.
 ```
 
+### frequency-band
+
+```
+Usage: tmv71 frequency-band [OPTIONS] [0|A|1|B] [118|144|220|300|430|1200]
+
+  Get or set the frequency band for the selected radio band.
+
+  Frequency bands are named using the names from "SELECTING A FREQUENCY
+  BAND" in the TM-V71 manual. Note that band A and band B support a
+  different subset of the available frequencies.
+
+Options:
+  --help  Show this message and exit.
+```
+
 ### id
 
 ```
@@ -192,7 +208,7 @@ Options:
 ### tune
 
 ```
-Usage: tmv71 tune [OPTIONS] BAND
+Usage: tmv71 tune [OPTIONS] [0|A|1|B]
 
 Options:
   --rx-freq, --rx FLOAT
@@ -215,7 +231,7 @@ Options:
 ### txpower
 
 ```
-Usage: tmv71 txpower [OPTIONS] BAND
+Usage: tmv71 txpower [OPTIONS] [0|A|1|B]
 
   Set tx power for the selected band.
 

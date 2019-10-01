@@ -220,6 +220,12 @@ def txpower(ctx, power, band):
 @click.argument('freq_band', type=click.Choice(api.FREQUENCY_BAND))
 @click.pass_context
 def frequency_band(ctx, band, freq_band):
+    '''Get or set the frequency band for the selected radio band.
+
+    Frequency bands are named using the names from "SELECTING A FREQUENCY BAND"
+    in the TM-V71 manual. Note that band A and band B support a different
+    subset of the available frequencies.'''
+
     band = normalize_band(band)
     with ctx.obj.programming_mode():
         if freq_band is None:
