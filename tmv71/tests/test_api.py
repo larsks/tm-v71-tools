@@ -8,6 +8,10 @@ class FakeSerialPort:
     def __init__(self, port, **kwargs):
         self.rx = io.BytesIO()
         self.tx = io.BytesIO()
+        self.exc = None
+
+    def raise_next_read(self, exc):
+        self.exc = exc
 
     def stuff(self, data):
         pos = self.tx.tell()
@@ -16,7 +20,13 @@ class FakeSerialPort:
         self.tx.seek(pos)
 
     def read(self, size=1):
-        return self.tx.read(size)
+        if self.exc is not None:
+            exc = self.exc
+            self.exc = None
+            raise exc()
+
+        data = self.tx.read(size)
+        return data
 
     def read_until(self, terminator=b'\n', size=None):
         acc = []
