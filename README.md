@@ -459,6 +459,13 @@ The get/set port speed methods rely on direct memory access, which means the rad
 '57600'
 ```
 
+## Contributing
+
+You are welcome to contribute to this project!  Submit [bug reports][], comments, or [pull requests][] to the GitHub project.
+
+[bug reports]: https://github.com/larsks/tm-v71-tools/issues
+[pull requests]: https://github.com/larsks/tm-v71-tools/pulls
+
 ## Author
 
 Lars Kellogg-Stedman <lars@oddbit.com>, N1LKS
@@ -473,15 +480,8 @@ If you're around the Boston area, you can sometimes find me on the [MMRA][] or [
 tm-v71-tools - an api and cli for your Kenwood TM-V71  
 Copyright (C) 2019 Lars Kellogg-Stedman
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
