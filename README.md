@@ -9,7 +9,7 @@ You will need Python 3.7 (or later), and recent versions of the `setuptools` pac
 You can install this from PyPI using `pip`:
 
 ```
-pip install tmv71-tools
+pip install tm-v71-tools
 ```
 
 Or you can install it straight from the GitHub repository:
