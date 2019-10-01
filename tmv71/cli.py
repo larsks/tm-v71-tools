@@ -9,6 +9,7 @@ from tmv71 import api
 from tmv71 import schema
 
 LOG = logging.getLogger(__name__)
+BAND_NAMES = ['0', 'A', '1', 'B']
 
 
 @click.group(context_settings=dict(auto_envvar_prefix='TMV71'))
@@ -108,16 +109,16 @@ def dual_band(ctx, mode):
 
 
 def normalize_band(band):
-    if band in ['0', 'A', 0]:
+    if band in ['0', 'A']:
         return 0
-    elif band in ['1', 'B', 1]:
+    elif band in ['1', 'B']:
         return 1
     else:
         raise ValueError('invalid band number: {}'.format(band))
 
 
 @main.command()
-@click.argument('band', type=click.Choice(['0', '1', 'A', 'B']))
+@click.argument('band', type=click.Choice(BAND_NAMES))
 @click.argument('channel', type=int, required=False)
 @click.pass_context
 def channel(ctx, band, channel):
@@ -180,7 +181,7 @@ def ptt(ctx, ptt_state):
               flag_value=schema.BAND_MODE.index('CALL'))
 @click.option('--wx', '--weather', 'mode',
               flag_value=schema.BAND_MODE.index('WX'))
-@click.argument('band')
+@click.argument('band', type=click.Choice(BAND_NAMES))
 @click.pass_context
 def band_mode(ctx, mode, band):
     '''Set selected band to VFO, MEM, call channel, or weather.'''
@@ -200,7 +201,7 @@ def band_mode(ctx, mode, band):
               flag_value=schema.TX_POWER.index('MED'))
 @click.option('--high', 'power',
               flag_value=schema.TX_POWER.index('HIGH'))
-@click.argument('band')
+@click.argument('band', type=click.Choice(BAND_NAMES))
 @click.pass_context
 def txpower(ctx, power, band):
     '''Set tx power for the selected band.'''
@@ -212,6 +213,21 @@ def txpower(ctx, power, band):
         res = ctx.obj.set_tx_power(band, int(power))
 
     print(*res)
+
+
+@main.command()
+@click.argument('band', type=click.Choice(BAND_NAMES))
+@click.argument('freq_band', type=click.Choice(api.FREQUENCY_BAND))
+@click.pass_context
+def frequency_band(ctx, band, freq_band):
+    band = normalize_band(band)
+    with ctx.obj.programming_mode():
+        if freq_band is None:
+            freq_band = ctx.obj.get_frequency_band(band)
+        else:
+            ctx.obj.set_frequency_band(band, freq_band)
+
+    print(band)
 
 
 def apply_channel_options(f):
@@ -241,7 +257,7 @@ def apply_channel_options(f):
 @main.command()
 @apply_channel_options
 @click.pass_context
-@click.argument('band')
+@click.argument('band', type=click.Choice(BAND_NAMES))
 def tune(ctx, band, **kwargs):
     print('Not implemented')
 
