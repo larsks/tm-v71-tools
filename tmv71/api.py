@@ -55,6 +55,11 @@ def pm(f):
 
         return f(self, *args, **kwargs)
 
+    if _.__doc__ is None:
+        _.__doc__ = ''
+
+    _.__doc__ += '\n\n[REQUIRES PROGRAMMING MODE]'
+
     return _
 
 
