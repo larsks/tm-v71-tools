@@ -358,12 +358,13 @@ def port_speed(ctx, speed):
 
     Valid port speeds are 9600, 19200, 38400, and 57600.'''
 
-    if speed is None:
-        LOG.info('getting port speed')
-        speed = ctx.obj.get_port_speed()
-    else:
-        LOG.info('setting port speed to %d bps', speed)
-        ctx.obj.set_port_speed(speed)
+    with ctx.obj.programming_mode():
+        if speed is None:
+            LOG.info('getting port speed')
+            speed = ctx.obj.get_port_speed()
+        else:
+            LOG.info('setting port speed to %d bps', speed)
+            ctx.obj.set_port_speed(speed)
 
     print(speed)
 
