@@ -304,8 +304,10 @@ class TMV71:
         WrongModeError exception.'''
 
         self.enter_programming_mode()
-        yield
-        self.exit_programming_mode()
+        try:
+            yield
+        finally:
+            self.exit_programming_mode()
 
     def enter_programming_mode(self):
         LOG.debug('entering programming mode')
