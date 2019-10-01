@@ -56,13 +56,14 @@ def pm(f):
 
 
 class TMV71:
-    def __init__(self, dev, speed=9600, debug=False):
+    def __init__(self, dev, speed=9600, debug=False, timeout=0.5):
         self.dev = dev
         self.speed = speed
         self.debug = debug
+        self.timeout = timeout
         self._programming_mode = False
         self.init_serial()
-    
+
     def __repr__(self):
         return '<TMV71 on {0.dev} @ {0.speed}>'.format(self)
 
@@ -72,16 +73,24 @@ class TMV71:
                                    baudrate=self.speed,
                                    rtscts=True,
                                    dsrdtr=True,
-                                   timeout=1)
+                                   timeout=self.timeout)
 
     def write_bytes(self, data):
+        '''Write the given data to the radio.'''
+
         if self.debug:
             print('write:', file=sys.stderr)
             print('\n'.join(hexdump.dumpgen(data)), file=sys.stderr)
         self._port.write(data)
 
-    def read_bytes(self, n):
-        data = self._port.read(n)
+    def read_bytes(self, n=0, until=None):
+        '''Read n bytes of data from the radio.'''
+
+        if until is None:
+            data = self._port.read(n)
+        else:
+            data = self._port.read_until(until)
+
         if not data:
             raise ReadTimeoutError()
 
@@ -91,14 +100,9 @@ class TMV71:
         return data
 
     def read_line(self):
-        data = self._port.read_until(b'\r')
-        if not data:
-            raise ReadTimeoutError()
+        '''Read a carriage-return terminated line from the radio.'''
 
-        if self.debug:
-            print('read:', file=sys.stderr)
-            print('\n'.join(hexdump.dumpgen(data)), file=sys.stderr)
-        return data[:-1]
+        return self.read_bytes(until=b'\r')[:-1]
 
     def send_command_raw(self, command, *args):
         self.write_bytes(command)
@@ -109,6 +113,19 @@ class TMV71:
         return self.read_line()
 
     def send_command(self, *command):
+        '''Send a command to the radio.
+
+        Convert the given command and arguments to bytes and send them to the
+        radio.  Read a response, convert it into a string, and split it on
+        commas.
+
+            >>> radio.send_command('FV', 0)
+            ['0', '1.00', '2.10', 'A', '1']
+
+        All arguments are first converted to strings, so
+        send_command('FV', 0) and send_command('FV', '0') are
+        equivalent.'''
+
         LOG.debug('sending command: %s', command)
 
         command_encoded = [str(arg).encode('ascii')
@@ -127,6 +144,12 @@ class TMV71:
     # ----------------------------------------------------------------------
 
     def clear(self):
+        '''Clear the communication channel.
+
+        Ensure the radio is in a known state by attempting to exit
+        programming mode, complete any partially entered command, and
+        read any remaining output.'''
+
         self.write_bytes(b'E\r')
 
         while True:
@@ -149,18 +172,23 @@ class TMV71:
         return res
 
     def radio_id(self):
+        '''Return the radio ID'''
         return self.send_command('ID')
 
     def radio_type(self):
+        '''Return the radio type (K for the US, M for Europe)'''
+
         return schema.TY.from_tuple(self.send_command('TY'))
 
     def radio_firmware(self):
         return self.send_command('FV', 0)
 
     def lock(self):
+        '''Enable the radio key lock'''
         return self.send_command('LK', 1)
 
     def unlock(self):
+        '''Disable the radio key lock'''
         return self.send_command('LK', 0)
 
     def get_poweron_message(self):
@@ -266,7 +294,7 @@ class TMV71:
     def programming_mode(self):
         '''Wrap code that interacts with the radio in programming mode.
 
-        You must enclose calls that require programming mode with this 
+        You must enclose calls that require programming mode with this
         context manager.  For example:
 
             with radio.programming_mode():
@@ -298,6 +326,8 @@ class TMV71:
 
     @pm
     def read_block(self, block, offset, length):
+        '''Read data from the radio'''
+
         LOG.debug('read block %d, offset %d, length %d', block, offset, length)
         self.write_bytes(bytes([ord('R'), block, offset, length]))
         self.read_bytes(4)
@@ -308,8 +338,11 @@ class TMV71:
 
     @pm
     def write_block(self, block, offset, data):
+        '''Write data to the radio'''
+
         length = len(data)
-        LOG.debug('write block %d, offset %d, length %d', block, offset, length)
+        LOG.debug('write block %d, offset %d, length %d',
+                  block, offset, length)
         if length == 256:
             length = 0
 
@@ -318,6 +351,8 @@ class TMV71:
         self.check_ack()
 
     def check_ack(self):
+        '''Validate the response to programming mode commands.'''
+
         res = self.read_bytes(1)
         if res == b'\x15':
             LOG.warning('radio is in error state (continuing)')
@@ -326,6 +361,8 @@ class TMV71:
 
     @pm
     def read_memory(self, fd):
+        '''Read data from the radio and write it to a file-like object.'''
+
         for block in range(0x7F):
             LOG.debug('reading block %d', block)
             data = self.read_block(block, 0, 0)
@@ -333,9 +370,11 @@ class TMV71:
 
     @pm
     def write_memory(self, fd):
+        '''Read data from a file-like object and write it to the radio.'''
+
         data = self.read_block(0, 0, 4)
         if data != b'\x00\x4b\x01\xff':
-            LOG.warning('unexpected response from radio (continue)')
+            LOG.warning('unexpected content in block 0 (continuing)')
 
         self.write_block(0, 0, b'\xff')
 
