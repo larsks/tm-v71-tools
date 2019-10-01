@@ -110,7 +110,7 @@ Options:
   --rx-freq, --rx FLOAT
   --tx-freq, --tx FLOAT
   --step FLOAT
-  --shift ENUM
+  --shift [SIMPLEX|UP|DOWN|SPLIT]
   --reverse INTEGER
   --tone-status INTEGER
   --ctcss-status INTEGER
@@ -119,10 +119,10 @@ Options:
   --ctcss-freq FLOAT
   --dcs-freq INTEGER
   --offset FLOAT
-  --mode ENUM
+  --mode [FM|AM|NFM]
   --lockout / --no-lockout
   -n, --name TEXT
-  --help                    Show this message and exit.
+  --help                          Show this message and exit.
 ```
 
 ### firmware
@@ -196,7 +196,7 @@ Options:
   --rx-freq, --rx FLOAT
   --tx-freq, --tx FLOAT
   --step FLOAT
-  --shift ENUM
+  --shift [SIMPLEX|UP|DOWN|SPLIT]
   --reverse INTEGER
   --tone-status INTEGER
   --ctcss-status INTEGER
@@ -205,9 +205,9 @@ Options:
   --ctcss-freq FLOAT
   --dcs-freq INTEGER
   --offset FLOAT
-  --mode ENUM
+  --mode [FM|AM|NFM]
   --lockout / --no-lockout
-  --help                    Show this message and exit.
+  --help                          Show this message and exit.
 ```
 
 ### txpower
@@ -240,10 +240,13 @@ Options:
 ```
 Usage: tmv71 export-channels [OPTIONS]
 
-  Export channels to a CSV document.
+  Export channels to a CSJ document.
+
+  A CSJ document is like a CSV document, but each field is valid JSON.
 
 Options:
   -o, --output FILENAME
+  -c, --channels TEXT
   --help                 Show this message and exit.
 ```
 
@@ -252,7 +255,9 @@ Options:
 ```
 Usage: tmv71 import-channels [OPTIONS]
 
-  Import channels from a CSV document.
+  Import channels from a CSJ document.
+
+  A CSJ document is like a CSV document, but each field is valid JSON.
 
   Use --sync to delete channels on the radio that do not exist in the input
   document.
