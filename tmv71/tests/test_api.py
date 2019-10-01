@@ -1,16 +1,48 @@
+import io
 import pytest
-from unittest import mock
 
 from tmv71 import api
 
 
-@pytest.fixture
-def radio(monkeypatch):
-    monkeypatch.setattr(api.serial, 'Serial', mock.MagicMock())
-    monkeypatch.setattr(api.TMV71, 'read_line', mock.MagicMock())
-    monkeypatch.setattr(api.TMV71, 'read_bytes', mock.MagicMock())
-    monkeypatch.setattr(api.TMV71, 'write_bytes', mock.MagicMock())
+class FakeSerialPort:
+    def __init__(self, port, **kwargs):
+        self.rx = io.BytesIO()
+        self.tx = io.BytesIO()
 
+    def stuff(self, data):
+        pos = self.tx.tell()
+        self.tx.seek(0, 2)
+        self.tx.write(data)
+        self.tx.seek(pos)
+
+    def read(self, size=1):
+        return self.tx.read(size)
+
+    def read_until(self, terminator=b'\n', size=None):
+        acc = []
+        while True:
+            res = self.read()
+            acc.append(res)
+            if res == terminator or (size is not None and len(acc) >= size):
+                break
+
+        return b''.join(acc)
+
+    def write(self, data):
+        return self.rx.write(data)
+
+    def reset(self):
+        self.rx.truncate(0)
+        self.tx.truncate(0)
+
+
+@pytest.fixture
+def patch_serial(monkeypatch):
+    monkeypatch.setattr(api.serial, 'Serial', FakeSerialPort)
+
+
+@pytest.fixture
+def radio(patch_serial):
     radio = api.TMV71(dev='dummy', speed=0, timeout=0)
     return radio
 
@@ -20,15 +52,14 @@ class TestApi:
         assert radio.dev == 'dummy'
 
     def test_radio_id(self, radio):
-        radio.read_line.return_value = b'ID DUMMY'
+        radio._port.stuff(b'ID DUMMY\r')
         check = radio.radio_id()
 
-        radio.write_bytes.assert_any_call(b'ID')
+        assert radio._port.rx.getvalue().endswith(b'ID\r')
         assert check == ['DUMMY']
 
     def test_programming_mode(self, radio):
-        radio.read_line.side_effect = [b'0M']
-        radio.read_bytes.side_effect = [b'\x06', b'\r', b'\x00']
+        radio._port.stuff(b'0M\r\x06\r\x00')
         with radio.programming_mode():
             assert radio._programming_mode
         assert not radio._programming_mode
@@ -40,16 +71,17 @@ class TestApi:
     def test_read_block(self, radio):
         test_data = b'\x01\x02\x03\x04'
 
-        radio.read_line.side_effect = [b'0M']
-        radio.read_bytes.side_effect = [b'W\x00\x00\x04', test_data, b'\x06',
-                                        b'\x06', b'\r', b'\x00']
+        radio._port.stuff(b'0M\rW\x00\x00\x04')
+        radio._port.stuff(test_data)
+        radio._port.stuff(b'\x06\x06\r\x00')
+
         with radio.programming_mode():
             data = radio.read_block(0, 0, 4)
-            radio.write_bytes.assert_any_call(b'R\x00\x00\x04')
+            assert radio._port.rx.getvalue().endswith(b'R\x00\x00\x04\x06')
             assert data == test_data
 
     def test_radio_type(self, radio):
-        radio.read_line.return_value = b'TY K,0,0,0,0'
+        radio._port.stuff(b'TY K,0,0,0,0\r')
         res = radio.radio_type()
         assert isinstance(res, dict)
         assert res['model'] == 'K'
@@ -57,9 +89,9 @@ class TestApi:
     def test_get_port_speed(self, radio):
         block, offset = api.M_OFFSET_PORT_SPEED
 
-        radio.read_line.side_effect = [b'0M']
-        radio.read_bytes.side_effect = [b'W\x00\x00\x04', b'\x03', b'\x06',
-                                        b'\x06', b'\r', b'\x00']
+        radio._port.stuff(b'0M\rW\x00\x00\x04\x03')
+        radio._port.stuff(b'\x06\x06\r\x00')
+
         with radio.programming_mode():
             res = radio.get_port_speed()
             assert res == '57600'
