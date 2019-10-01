@@ -172,10 +172,10 @@ def ptt(ctx, ptt_state):
 
 
 @main.command()
-@click.option('--vfo', 'mode', flag_value=api.BAND_MODE.VFO)
-@click.option('--mem', '--memory', 'mode', flag_value=api.BAND_MODE.MEM)
-@click.option('--call', 'mode', flag_value=api.BAND_MODE.CALL)
-@click.option('--wx', '--weather', 'mode', flag_value=api.BAND_MODE.WX)
+@click.option('--vfo', 'mode', flag_value=schema.BAND_MODE.VFO)
+@click.option('--mem', '--memory', 'mode', flag_value=schema.BAND_MODE.MEM)
+@click.option('--call', 'mode', flag_value=schema.BAND_MODE.CALL)
+@click.option('--wx', '--weather', 'mode', flag_value=schema.BAND_MODE.WX)
 @click.argument('band')
 @click.pass_context
 def band_mode(ctx, mode, band):
@@ -191,9 +191,9 @@ def band_mode(ctx, mode, band):
 
 
 @main.command()
-@click.option('--low', 'power', flag_value=api.TX_POWER.LOW)
-@click.option('--medium', '--med', 'power', flag_value=api.TX_POWER.MED)
-@click.option('--high', 'power', flag_value=api.TX_POWER.HIGH)
+@click.option('--low', 'power', flag_value=schema.TX_POWER.LOW)
+@click.option('--medium', '--med', 'power', flag_value=schema.TX_POWER.MED)
+@click.option('--high', 'power', flag_value=schema.TX_POWER.HIGH)
 @click.argument('band')
 @click.pass_context
 def txpower(ctx, power, band):

@@ -4,6 +4,20 @@ from marshmallow.validate import OneOf
 from marshmallow_enum import EnumField
 from enum import Enum
 
+
+class BAND_MODE(Enum):
+    VFO = '0'
+    MEM = '1'
+    CALL = '2'
+    WX = '3'
+
+
+class TX_POWER(Enum):
+    LOW = '2'
+    MED = '1'
+    HIGH = '0'
+
+
 STEP_SIZE = [
     5,
     6.25,

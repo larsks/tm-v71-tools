@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-import enum
 from functools import wraps
 import hexdump
 import logging
@@ -12,19 +11,6 @@ LOG = logging.getLogger(__name__)
 PORT_SPEED = ['9600', '19200', '38400', '57600']
 
 M_OFFSET_PORT_SPEED = 0x21
-
-
-class BAND_MODE(enum.IntEnum):
-    VFO = 0
-    MEM = 1
-    CALL = 2
-    WX = 3
-
-
-class TX_POWER(enum.IntEnum):
-    LOW = 2
-    MED = 1
-    HIGH = 0
 
 
 class CommunicationError(Exception):
