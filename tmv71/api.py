@@ -1,4 +1,6 @@
+from contextlib import contextmanager
 import enum
+from functools import wraps
 import hexdump
 import logging
 import serial
@@ -50,12 +52,33 @@ class ReadTimeoutError(CommunicationError):
     '''A read operation timed out'''
 
 
+class WrongModeError(CommunicationError):
+    '''Radio is not in programming mode'''
+
+
+def pm(f):
+    '''Decorator to ensure that radio is in programming mode'''
+
+    @wraps(f)
+    def _(self, *args, **kwargs):
+        if not self._programming_mode:
+            raise WrongModeError()
+
+        return f(self, *args, **kwargs)
+
+    return _
+
+
 class TMV71:
     def __init__(self, dev, speed=9600, debug=False):
         self.dev = dev
         self.speed = speed
         self.debug = debug
+        self._programming_mode = False
         self.init_serial()
+    
+    def __repr__(self):
+        return '<TMV71 on {0.dev} @ {0.speed}>'.format(self)
 
     def init_serial(self):
         LOG.info('opening %s at %d bps', self.dev, self.speed)
@@ -118,7 +141,7 @@ class TMV71:
     # ----------------------------------------------------------------------
 
     def clear(self):
-        self.write_bytes(b'\r')
+        self.write_bytes(b'E\r')
 
         while True:
             try:
@@ -234,33 +257,62 @@ class TMV71:
         res = self.send_command('MN', channel, name)
         return res[1]
 
-    def get_port_speed(self):
-        try:
-            self.enter_programming_mode()
-            speed = self.read_block(0, M_OFFSET_PORT_SPEED, 1)
-        finally:
-            self.exit_programming_mode()
+    # ----------------------------------------------------------------------
 
+    @pm
+    def get_port_speed(self):
+        speed = self.read_block(0, M_OFFSET_PORT_SPEED, 1)
         return PORT_SPEED[int.from_bytes(speed, byteorder='big')]
 
+    @pm
     def set_port_speed(self, speed):
         speed = PORT_SPEED.index(speed)
+        self.write_block(0, M_OFFSET_PORT_SPEED, bytes([speed]))
 
-        try:
-            self.enter_programming_mode()
-            self.write_block(0, M_OFFSET_PORT_SPEED, bytes([speed]))
-        finally:
-            self.exit_programming_mode()
+    @pm
+    def reset(self):
+        '''Reset to default configuration'''
+        self.write_block(0, 0, b'\xff')
 
     # ----------------------------------------------------------------------
 
+    @contextmanager
+    def programming_mode(self):
+        '''Wrap code that interacts with the radio in programming mode.
+
+        You must enclose calls that require programming mode with this 
+        context manager.  For example:
+
+            with radio.programming_mode():
+                radio.read_block(0, 0, 0)
+
+        Failure to use the context manager will result in
+        WrongModeError exception.'''
+
+        self.enter_programming_mode()
+        yield
+        self.exit_programming_mode()
+
     def enter_programming_mode(self):
+        LOG.debug('entering programming mode')
         self.write_bytes(b'0M PROGRAM\r')
         res = self.read_line()
         if res != b'0M':
             raise UnexpectedResponseError()
+        self._programming_mode = True
 
+    def exit_programming_mode(self):
+        LOG.debug('exiting programming mode')
+        self.write_bytes(b'E')
+        self._programming_mode = False
+        for expected in [b'\x06', b'\r', b'\x00']:
+            res = self.read_bytes(1)
+            if res != expected:
+                raise UnexpectedResponseError()
+
+    @pm
     def read_block(self, block, offset, length):
+        LOG.debug('read block %d, offset %d, length %d', block, offset, length)
         self.write_bytes(bytes([ord('R'), block, offset, length]))
         self.read_bytes(4)
         data = self.read_bytes(length if length else 256)
@@ -268,12 +320,14 @@ class TMV71:
         self.check_ack()
         return data
 
+    @pm
     def write_block(self, block, offset, data):
-        dlen = len(data)
-        if dlen == 256:
-            dlen = 0
+        length = len(data)
+        LOG.debug('write block %d, offset %d, length %d', block, offset, length)
+        if length == 256:
+            length = 0
 
-        self.write_bytes(bytes([ord('W'), block, offset, dlen]))
+        self.write_bytes(bytes([ord('W'), block, offset, length]))
         self.write_bytes(bytes(data))
         self.check_ack()
 
@@ -284,43 +338,29 @@ class TMV71:
         elif res != b'\x06':
             raise UnexpectedResponseError()
 
+    @pm
     def read_memory(self, fd):
-        try:
-            self.enter_programming_mode()
+        for block in range(0x7F):
+            LOG.debug('reading block %d', block)
+            data = self.read_block(block, 0, 0)
+            fd.write(data)
 
-            for block in range(0x7F):
-                LOG.debug('reading block %d', block)
-                data = self.read_block(block, 0, 0)
-                fd.write(data)
-        finally:
-            self.exit_programming_mode()
-
+    @pm
     def write_memory(self, fd):
-        try:
-            self.enter_programming_mode()
-            data = self.read_block(0, 0, 4)
-            if data != b'\x00\x4b\x01\xff':
-                LOG.warning('unexpected response from radio (continue)')
+        data = self.read_block(0, 0, 4)
+        if data != b'\x00\x4b\x01\xff':
+            LOG.warning('unexpected response from radio (continue)')
 
-            self.write_block(0, 0, b'\xff')
+        self.write_block(0, 0, b'\xff')
 
-            fd.seek(4)
-            self.write_block(0, 4, fd.read(0xfc))
+        fd.seek(4)
+        self.write_block(0, 4, fd.read(0xfc))
 
-            for block in range(1, 0x7F):
-                LOG.debug('writing block %d', block)
-                data = fd.read(256)
-                self.write_block(block, 0, data)
+        for block in range(1, 0x7F):
+            LOG.debug('writing block %d', block)
+            data = fd.read(256)
+            self.write_block(block, 0, data)
 
-            self.write_block(0, 0, b'\x00\x4b\x01\xff')
-        finally:
-            self.exit_programming_mode()
-
-    def exit_programming_mode(self):
-        self.write_bytes(b'E')
-        for expected in [b'\x06', b'\r', b'\x00']:
-            res = self.read_bytes(1)
-            if res != expected:
-                raise UnexpectedResponseError()
+        self.write_block(0, 0, b'\x00\x4b\x01\xff')
 
     # ----------------------------------------------------------------------

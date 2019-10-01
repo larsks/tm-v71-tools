@@ -369,7 +369,7 @@ def read(ctx, output):
 
     LOG.info('read from radio to file "%s"', output.name)
     try:
-        with output:
+        with output, ctx.obj.programming_mode():
             try:
                 ctx.obj.read_memory(output)
             except api.CommunicationError as err:
@@ -388,7 +388,7 @@ def write(ctx, input):
     '''Read memory dump from a file and write it to the radio.'''
 
     LOG.info('write to radio from file "%s"', input.name)
-    with input:
+    with input, ctx.obj.programming_mode():
         try:
             ctx.obj.write_memory(input)
         except api.CommunicationError as err:
@@ -407,12 +407,9 @@ def read_block(ctx, output, block, offset, length):
 
     LOG.info('reading %d bytes of memory from block %d offset %d',
              256 if length == 0 else length, block, offset)
-    try:
-        with output:
-            ctx.obj.enter_programming_mode()
-            output.write(ctx.obj.read_block(block, offset, length))
-    finally:
-        ctx.obj.exit_programming_mode()
+
+    with output, ctx.obj.programming_mode():
+        output.write(ctx.obj.read_block(block, offset, length))
 
 
 @memory.command()
@@ -442,8 +439,5 @@ def write_block(ctx, input, hexdata, block, offset, length):
     LOG.info('writing %d bytes of data to block %d offset %d',
              256 if datalen == 0 else datalen, block, offset)
 
-    try:
-        ctx.obj.enter_programming_mode()
+    with ctx.obj.programming_mode():
         ctx.obj.write_block(block, offset, data)
-    finally:
-        ctx.obj.exit_programming_mode()
