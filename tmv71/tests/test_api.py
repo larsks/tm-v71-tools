@@ -61,6 +61,11 @@ class TestApi:
     def test_create_api_object(self, radio):
         assert radio.dev == 'dummy'
 
+    def test_clear(self, radio):
+        radio._port.raise_next_read(api.ReadTimeoutError)
+        radio._port.stuff(b'?\r')
+        radio.clear()
+
     def test_radio_id(self, radio):
         radio._port.stuff(b'ID DUMMY\r')
         check = radio.radio_id()
@@ -105,3 +110,14 @@ class TestApi:
         with radio.programming_mode():
             res = radio.get_port_speed()
             assert res == '57600'
+
+    def test_set_port_speed(self, radio):
+        block, offset = api.M_OFFSET_PORT_SPEED
+
+        radio._port.stuff(b'0M\r\x06\x06\r\x00')
+
+        with radio.programming_mode():
+            radio.set_port_speed('57600')
+
+        assert radio._port.rx.getvalue().endswith(
+            b'W\x00\x21\x01\x03E')
