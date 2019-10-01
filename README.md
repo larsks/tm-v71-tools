@@ -24,6 +24,7 @@ You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass th
 
 ## Available commands
 
+<!-- start command list -->
 - [band-mode](#band-mode)
 - [channel](#channel)
 - [control-band](#control-band)
@@ -44,6 +45,7 @@ You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass th
 - [memory read-block](#memory-read-block)
 - [memory write-block](#memory-write-block)
 - [raw](#raw)
+<!-- end command list -->
 
 <!-- start command docs -->
 ### band-mode
@@ -330,7 +332,7 @@ Options:
 
 <!-- end command docs -->
 
-## Examples
+## CLI Examples
 
 ### Specify port and speed on the command line
 
@@ -380,6 +382,65 @@ The PC port speed is stored as a byte at offset 33 (`0x21`) in block 0. The foll
 
 ```
 tmv71 memory write-block -d '03' 0 0x21
+```
+
+## API Examples
+
+The following examples assume:
+
+```
+>>> from tmv71 import api
+>>> radio = api.TMV71(port='/dev/ttyUSB0', speed=57600)
+```
+
+### Get radio ID
+
+```
+>>> radio.radio_id()
+['TM-V71']
+```
+
+### Get a channel entry
+
+```
+>>> import pprint
+>>> pprint.pprint(radio.get_channel_entry(0), indent=2)
+{ 'channel': 0,
+  'ctcss_freq': 146.2,
+  'ctcss_status': True,
+  'dcs_freq': 23,
+  'dcs_status': False,
+  'lockout': False,
+  'mode': 'FM',
+  'offset': 0.6,
+  'reverse': False,
+  'rx_freq': 145.43,
+  'shift': 'DOWN',
+  'step': 5,
+  'tone_freq': 146.2,
+  'tone_status': False,
+  'tx_freq': 0.0,
+  'tx_step': 5}
+```
+
+### Setting a channel entry
+
+```
+>>> entry = radio.get_channel_entry(0)
+>>> entry['rx_freq'] = 442.25
+>>> radio.set_channel_entry(0, entry)
+['']
+```
+
+### Get the port speed
+
+The get/set port speed methods rely on direct memory access, which means the radio must be in programming mode before we can use them. The `programming_mode` decorating takes care of entering programming mode and exiting it when the command exits.
+
+```
+>>> with radio.programming_mode():
+...   radio.get_port_speed()
+...
+'57600'
 ```
 
 ## Author
