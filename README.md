@@ -332,25 +332,31 @@ Options:
 
 ## Examples
 
-### Specifying port and speed on the command line
+### Specify port and speed on the command line
 
 ```
 tmv71 --port /dev/ttyS0 --speed 9600 id
 ```
 
-### Exporting channels to a CSV
+### Export channels to a CSV
 
 ```
 tmv71 export-channels -o channels.csv
 ```
 
-### Importing channels from a CSV
+### Import channels from a CSV
 
 ```
 tmv71 import-channels -i channels.csv
 ```
 
-### Backing up your radio
+### Export only channels 1-10
+
+```
+tmv71 export-channels -o channels.csv -c 1:10
+```
+
+### Back up your radio
 
 ```
 tmv71 memory read -o backup.dat
