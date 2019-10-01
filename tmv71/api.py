@@ -9,8 +9,11 @@ from tmv71 import schema
 
 LOG = logging.getLogger(__name__)
 PORT_SPEED = ['9600', '19200', '38400', '57600']
+FREQUENCY_BAND = ['118', '144', '220', '300', '430', '1200']
 
-M_OFFSET_PORT_SPEED = 0x21
+M_OFFSET_PORT_SPEED = (0x0, 0x21)
+M_OFFSET_BANDA_BAND = (0x2, 0x2)
+M_OFFSET_BANDB_BAND = (0x2, 0xE)
 
 
 class CommunicationError(Exception):
@@ -275,13 +278,50 @@ class TMV71:
 
     @pm
     def get_port_speed(self):
-        speed = self.read_block(0, M_OFFSET_PORT_SPEED, 1)
+        block, offset = M_OFFSET_PORT_SPEED
+        speed = self.read_block(block, offset, 1)
         return PORT_SPEED[int.from_bytes(speed, byteorder='big')]
 
     @pm
     def set_port_speed(self, speed):
         speed = PORT_SPEED.index(speed)
-        self.write_block(0, M_OFFSET_PORT_SPEED, bytes([speed]))
+        block, offset = M_OFFSET_PORT_SPEED
+        self.write_block(block, offset, bytes([speed]))
+
+    @pm
+    def get_frequency_band(self, band):
+        if band == 0:
+            block, offset = M_OFFSET_BANDA_BAND
+        elif band == 1:
+            block, offset = M_OFFSET_BANDB_BAND
+        else:
+            raise ValueError('invalid band')
+
+        res = self.read_block(2, offset, 1)
+        res = int.from_bytes(res, byteorder=sys.byteorder)
+
+        # The constants in FREQUENCY_BAND are correct for band A, but
+        # for band B we need to add 4 to the value.
+        res -= (4 * band)
+
+        return FREQUENCY_BAND[res]
+
+    @pm
+    def set_frequency_band(self, band, freq_band):
+        freq_band = FREQUENCY_BAND.index(freq_band)
+
+        # The constants in FREQUENCY_BAND are correct for band A, but
+        # for band B we need to add 4 to the value.
+        freq_band += (4 * band)
+
+        if band == 0:
+            block, offset = M_OFFSET_BANDA_BAND
+        elif band == 1:
+            block, offset = M_OFFSET_BANDB_BAND
+        else:
+            raise ValueError('invalid band')
+
+        self.write_block(2, offset, bytes([freq_band]))
 
     @pm
     def reset(self):
