@@ -513,7 +513,17 @@ def flexint(v):
 @click.argument('length', type=flexint, default='0', required=False)
 @click.pass_context
 def read_block(ctx, output, block, offset, length):
-    '''Read one or more memory blocks from the radio.'''
+    '''Read one or more memory blocks from the radio.
+
+    This command will by default output the binary data to stdout. Use the
+    '-o' option to write to a file instead.
+
+    You can read a range of blocks by specifying the start and end
+    (inclusive) of the range separated by a colon.  E.g., to read blocks 0
+    through 20, you could use `tmv71 memory read-block 0:20`.
+
+    Nothing stops you from providing an offset and size when specifying
+    multiple blocks, but it probably doesn't make sense.'''
 
     if ':' in block:
         b_start, b_end = (flexint(x) for x in block.split(':'))
@@ -536,7 +546,10 @@ def read_block(ctx, output, block, offset, length):
 @click.argument('length', type=flexint, default='0', required=False)
 @click.pass_context
 def write_block(ctx, input, hexdata, block, offset, length):
-    '''Write data to radio memory'''
+    '''Write data to radio memory.
+
+    This command will by default read data from stdin. Use the
+    '-i' option to read data from a file instead.'''
 
     if hexdata:
         data = binascii.unhexlify(hexdata)

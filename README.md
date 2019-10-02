@@ -342,6 +342,7 @@ Usage: tmv71 import-channels [OPTIONS]
 Options:
   -i, --input FILENAME
   -s, --sync
+  -c, --channels TEXT
   --help                Show this message and exit.
 ```
 
@@ -374,7 +375,17 @@ Options:
 ```
 Usage: tmv71 memory read-block [OPTIONS] BLOCK [OFFSET] [LENGTH]
 
-  Read a memory block from the radio.
+  Read one or more memory blocks from the radio.
+
+  This command will by default output the binary data to stdout. Use the
+  '-o' option to write to a file instead.
+
+  You can read a range of blocks by specifying the start and end (inclusive)
+  of the range separated by a colon.  E.g., to read blocks 0 through 20, you
+  could use `tmv71 memory read-block 0:20`.
+
+  Nothing stops you from providing an offset and size when specifying
+  multiple blocks, but it probably doesn't make sense.
 
 Options:
   -o, --output FILENAME
@@ -386,7 +397,10 @@ Options:
 ```
 Usage: tmv71 memory write-block [OPTIONS] BLOCK [OFFSET] [LENGTH]
 
-  Write data to radio memory
+  Write data to radio memory.
+
+  This command will by default read data from stdin. Use the '-i' option to
+  read data from a file instead.
 
 Options:
   -i, --input FILENAME
