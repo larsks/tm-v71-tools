@@ -1,5 +1,6 @@
 import binascii
 import click
+import hexdump
 import json
 import logging
 import os
@@ -508,11 +509,12 @@ def flexint(v):
 @memory.command()
 @click.option('-o', '--output', type=click.File('wb'),
               default=sys.stdout.buffer)
+@click.option('-h', '--hexdump', '_hexdump', is_flag=True)
 @click.argument('block')
 @click.argument('offset', type=flexint, default='0', required=False)
 @click.argument('length', type=flexint, default='0', required=False)
 @click.pass_context
-def read_block(ctx, output, block, offset, length):
+def read_block(ctx, output, _hexdump, block, offset, length):
     '''Read one or more memory blocks from the radio.
 
     This command will by default output the binary data to stdout. Use the
@@ -535,7 +537,14 @@ def read_block(ctx, output, block, offset, length):
         for block in blocks:
             LOG.info('reading %d bytes of memory from block %d offset %d',
                      256 if length == 0 else length, block, offset)
-            output.write(ctx.obj.read_block(block, offset, length))
+            data = ctx.obj.read_block(block, offset, length)
+
+            if _hexdump:
+                output.write(
+                    hexdump.hexdump(data, result='return').encode('ascii'))
+                output.write(b'\n')
+            else:
+                output.write(data)
 
 
 @memory.command()
