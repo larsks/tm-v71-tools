@@ -145,7 +145,7 @@ Options:
 ### frequency-band
 
 ```
-Usage: tmv71 frequency-band [OPTIONS] [0|A|1|B] [118|144|220|300|430|1200]
+Usage: tmv71 frequency-band [OPTIONS] [0|A|1|B] [[118|144|220|300|430|1200]]
 
   Get or set the frequency band for the selected radio band.
 

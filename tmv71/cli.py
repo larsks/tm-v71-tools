@@ -217,7 +217,8 @@ def txpower(ctx, power, band):
 
 @main.command()
 @click.argument('band', type=click.Choice(BAND_NAMES))
-@click.argument('freq_band', type=click.Choice(api.FREQUENCY_BAND))
+@click.argument('freq_band', type=click.Choice(api.FREQUENCY_BAND),
+                required=False)
 @click.pass_context
 def frequency_band(ctx, band, freq_band):
     '''Get or set the frequency band for the selected radio band.
@@ -230,10 +231,11 @@ def frequency_band(ctx, band, freq_band):
     with ctx.obj.programming_mode():
         if freq_band is None:
             freq_band = ctx.obj.get_frequency_band(band)
+            pass
         else:
             ctx.obj.set_frequency_band(band, freq_band)
 
-    print(band)
+    print(freq_band)
 
 
 def apply_options_from_schema(model, **kwargs):
