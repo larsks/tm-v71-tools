@@ -1,11 +1,27 @@
-from marshmallow import Schema, post_load
+from marshmallow import Schema, post_load, validate
 from marshmallow.fields import Field, String, Float, Boolean, Integer
 from marshmallow.validate import OneOf
 
 BAND_MODE = ['VFO', 'MEM', 'CALL', 'WX']
-
 TX_POWER = ['HIGH', 'MED', 'LOW']
-
+ANNOUNCE = ['OFF', 'AUTO', 'MANUAL']
+LANGUAGE = ['English', 'Japanese']
+SQL_HANG_TIME = ['OFF', '125', '250', '500']
+MUTE_HANG_TIME = ['OFF', '125', '250', '500', '750', '1000']
+RECALL_METHOD = ['ALL', 'CURRENT']
+SPEED = ['FAST', 'SLOW']
+DTMF_PAUSE = ['100', '250', '500', '750', '1000', '1500', '2000']
+BACKLIGHT_COLOR = ['AMBER', 'GREEN']
+KEY_FUNCTIONS = ['WX', 'FREQBAND', 'CTRL', 'MONITOR', 'VGS', 'VOICE',
+                 'GROUP_UP', 'MENU', 'MUTE', 'SHIFT', 'DUAL',
+                 'MEM_TO_VFO', 'VFO', 'MR', 'CALL', 'MHZ',
+                 'TONE', 'REV', 'LOW', 'LOCK', 'A_B', 'ENTER',
+                 '1750HZ']
+SCAN_RESUME = ['TIME', 'CARRIER', 'SEEK']
+APO = ['OFF', '30', '60', '90', '120', '180']
+EXT_DATA_BAND = ['A', 'B', 'TXA_RXB', 'TXB_RXA']
+EXT_DATA_SPEED = ['1200', '9600']
+SQC_SOURCE = ['OFF', 'BUSY', 'SQL', 'TX', 'BUSY_TX', 'SQL_TX']
 STEP_SIZE = [
     5,
     6.25,
@@ -232,7 +248,7 @@ class Indexed(Field):
         return self.fmt.format(self.values.index(value))
 
     def _deserialize(self, value, attr, data, **kwargs):
-        return self.values[int(value)]
+        return self.values[int(value, 16)]
 
 
 class RadioFloat(Float):
@@ -324,6 +340,60 @@ class TY_Schema(RadioSchema):
     max_tx_expansion = Integer()
     crossband = Integer()
     skycommand = Integer()
+
+
+# 0,4,0,1,0,4,1,0,10,0,0,0,0,0,0,2,0,0,0,0,2,0,1,0,0,8,0,0,00,02,14,0D,0C,15,0,0,0,0,0,4,1,1
+class MU_Schema(RadioSchema):
+    beep = RadioBoolean(required=True)
+    cbeep_volume = FormattedInteger(
+        validate=validate.Range(min=0, max=7),
+        required=True)
+    external_speaker_mode = FormattedInteger(
+        validate=validate.Range(min=0, max=2), required=True)
+    announce = Indexed(ANNOUNCE, fmt='{:02X}', required=True)
+    language = Indexed(LANGUAGE, fmt='{:02X}', required=True)
+    voice_volume = FormattedInteger(validate=validate.Range(min=0, max=7),
+                                    required=True)
+    voice_speed = FormattedInteger(validate=validate.Range(min=0, max=4),
+                                   required=True)
+    playback_repeat = RadioBoolean(required=True)
+    playback_repeat_interval = FormattedInteger(
+        validate=validate.Range(min=0, max=60), required=True)
+    continous_recording = RadioBoolean(required=True)
+    vhf_aip = RadioBoolean(required=True)
+    uhf_aip = RadioBoolean(required=True)
+    s_meter_sql_hang_time = Indexed(SQL_HANG_TIME, fmt='{:02X}', required=True)
+    mute_hang_time = Indexed(MUTE_HANG_TIME, fmt='{:02X}', required=True)
+    beatshift = RadioBoolean(required=True)
+    timeout_timer = FormattedInteger(
+        validate=validate.Range(min=0, max=3),
+        required=True)
+    recall_method = Indexed(RECALL_METHOD, fmt='{:02X}', required=True)
+    echolink_speed = Indexed(SPEED, fmt='{:02X}', required=True)
+    dtmf_hold = RadioBoolean(required=True)
+    dtmf_speed = Indexed(SPEED, fmt='{:02X}', required=True)
+    dtmf_pause = Indexed(DTMF_PAUSE, fmt='{:02X}', required=True)
+    dtmf_key_lock = RadioBoolean(required=True)
+    auto_repeater_offset = RadioBoolean(required=True)
+    hold_1750hz = RadioBoolean(required=True)
+    unknown = String()
+    brightness_level = FormattedInteger(required=True)
+    auto_brightness = RadioBoolean(required=True)
+    backlight_color = Indexed(BACKLIGHT_COLOR, fmt='{:02X}', required=True)
+    pf1_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True)
+    pf2_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True)
+    mic_pf1_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True)
+    mic_pf2_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True)
+    mic_pf3_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True)
+    mic_pf4_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True)
+    mic_key_lock = RadioBoolean(required=True)
+    scan_resume = Indexed(SCAN_RESUME, fmt='{:02X}', required=True)
+    apo = Indexed(APO, fmt='{:02X}', required=True)
+    ext_data_band = Indexed(EXT_DATA_BAND, fmt='{:02X}', required=True)
+    ext_data_speed = Indexed(EXT_DATA_SPEED, fmt='{:02X}', required=True)
+    sqc_source = Indexed(SQC_SOURCE, fmt='{:02X}', required=True)
+    auto_pm_store = RadioBoolean(required=True)
+    display_partion_bar = RadioBoolean(required=True)
 
 
 # Dynamically create instances of each schema

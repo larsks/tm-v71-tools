@@ -279,6 +279,12 @@ class TMV71:
         res = self.send_command('MN', channel, name)
         return res[1]
 
+    def get_radio_config(self):
+        return schema.MU.from_tuple(self.send_command('MU'))
+
+    def set_radio_config(self, settings):
+        return self.send_command('MU', schema.MU.to_csv(settings))
+
     # ----------------------------------------------------------------------
 
     @pm
