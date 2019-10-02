@@ -210,7 +210,8 @@ class RadioSchema(Schema):
         Order of items in tuple must match order of declared fields
         for this schema.'''
 
-        return self.load(dict(zip(self.declared_fields, values)))
+        data = self.load(dict(zip(self.declared_fields, values)))
+        return data
 
     def to_tuple(self, obj):
         '''Convert object to a tuple'''

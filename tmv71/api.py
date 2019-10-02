@@ -258,7 +258,8 @@ class TMV71:
 
     def get_channel_entry(self, channel):
         channel = '{:03d}'.format(channel)
-        return schema.ME.from_tuple(self.send_command('ME', channel))
+        res = schema.ME.from_tuple(self.send_command('ME', channel))
+        return res
 
     def set_channel_entry(self, channel, settings):
         settings[channel] = channel

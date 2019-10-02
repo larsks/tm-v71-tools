@@ -328,6 +328,20 @@ def entry(ctx, channel, name, **kwargs):
     print(fmt_dict(res))
 
 
+def resolve_range(rspec, default=None):
+    selected = default
+    if rspec:
+        selected = []
+        for entry in rspec:
+            if ':' in entry:
+                r_start, r_end = (int(x) for x in entry.split(':'))
+                selected.extend(range(r_start, r_end + 1))
+            else:
+                selected.append(int(entry))
+
+    return selected
+
+
 @main.command()
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
 @click.option('-c', '--channels', multiple=True)
@@ -337,23 +351,12 @@ def export_channels(ctx, output, channels):
 
     A CSJ document is like a CSV document, but each field is valid JSON.'''
 
-    selected = None
-    if channels:
-        selected = []
-        for channel in channels:
-            if ':' in channel:
-                ch_start, ch_end = (int(x) for x in channel.split(':'))
-                selected.extend(range(ch_start, ch_end + 1))
-            else:
-                selected.append(int(channel))
+    selected = resolve_range(channels, range(1000))
 
     with output:
         output.write(','.join(list(schema.ME.declared_fields) + ['name']))
         output.write('\n')
-        for channel in range(1000):
-            if selected is not None and channel not in selected:
-                continue
-
+        for channel in selected:
             LOG.info('getting information for channel %d', channel)
 
             try:
@@ -371,32 +374,35 @@ def export_channels(ctx, output, channels):
 @main.command()
 @click.option('-i', '--input', type=click.File('r'), default=sys.stdin)
 @click.option('-s', '--sync', is_flag=True)
+@click.option('-c', '--channels', multiple=True)
 @click.pass_context
-def import_channels(ctx, input, sync):
+def import_channels(ctx, input, sync, channels):
     '''Import channels from a CSJ document.
 
     A CSJ document is like a CSV document, but each field is valid JSON.
 
     Use --sync to delete channels on the radio that do not exist
     in the input document.'''
+    selected = resolve_range(channels, range(1000))
+
     with input:
-        channels = {}
+        channelmap = {}
         for line in input:
             if line.startswith('channel'):
                 continue
             line = line.rstrip()
             values = [json.loads(x) for x in line.split(',')]
-            channels[values[0]] = values
+            channelmap[values[0]] = values
 
-        for channel in range(1000):
-            if channel not in channels:
+        for channel in selected:
+            if channel not in channelmap:
                 if sync:
                     LOG.info('deleting channel %d', channel)
                     ctx.obj.delete_channel_entry(channel)
             else:
                 LOG.info('setting information for channel %d', channel)
-                channel_config = schema.ME.from_raw_tuple(channels[channel])
-                channel_name = channels[channel][-1]
+                channel_config = schema.ME.from_raw_tuple(channelmap[channel])
+                channel_name = channelmap[channel][-1]
 
                 ctx.obj.set_channel_entry(channel, channel_config)
                 ctx.obj.set_channel_name(channel, channel_name)
@@ -502,18 +508,24 @@ def flexint(v):
 @memory.command()
 @click.option('-o', '--output', type=click.File('wb'),
               default=sys.stdout.buffer)
-@click.argument('block', type=flexint)
+@click.argument('block')
 @click.argument('offset', type=flexint, default='0', required=False)
 @click.argument('length', type=flexint, default='0', required=False)
 @click.pass_context
 def read_block(ctx, output, block, offset, length):
-    '''Read a memory block from the radio.'''
+    '''Read one or more memory blocks from the radio.'''
 
-    LOG.info('reading %d bytes of memory from block %d offset %d',
-             256 if length == 0 else length, block, offset)
+    if ':' in block:
+        b_start, b_end = (flexint(x) for x in block.split(':'))
+        blocks = range(b_start, b_end + 1)
+    else:
+        blocks = [flexint(block)]
 
     with output, ctx.obj.programming_mode():
-        output.write(ctx.obj.read_block(block, offset, length))
+        for block in blocks:
+            LOG.info('reading %d bytes of memory from block %d offset %d',
+                     256 if length == 0 else length, block, offset)
+            output.write(ctx.obj.read_block(block, offset, length))
 
 
 @memory.command()
