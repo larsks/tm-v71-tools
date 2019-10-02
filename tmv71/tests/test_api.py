@@ -121,3 +121,40 @@ class TestApi:
 
         assert radio._port.rx.getvalue().endswith(
             b'W\x00\x21\x01\x03E')
+
+    def test_get_channel_entry(self, radio):
+        radio._port.stuff(b'ME 000,0145430000,0,1,1,0,1,0,23,'
+                          b'23,000,00600000,0,0000000000,0,0\r')
+        entry = radio.get_channel_entry(0)
+        assert entry['rx_freq'] == 145.43
+
+    def test_set_channel_entry(self, radio):
+        expected = {
+            'channel': 0,
+            'rx_freq': 145.43,
+            'step': 5,
+            'shift': 'UP',
+            'reverse': True,
+            'tone_status': False,
+            'ctcss_status': True,
+            'dcs_status': False,
+            'tone_freq': 146.2,
+            'ctcss_freq': 146.2,
+            'dcs_freq': 23,
+            'offset': 0.6,
+            'mode': 'FM',
+            'tx_freq': 0.0,
+            'tx_step': 5,
+            'lockout': False,
+        }
+        radio._port.stuff(b'ME 000,0145430000,0,1,1,0,1,0,23,'
+                          b'23,000,00600000,0,0000000000,0,0\r'
+                          b'ME\r')
+        entry = radio.get_channel_entry(0)
+        assert entry == expected
+        entry['lockout'] = True
+        radio.set_channel_entry(0, entry)
+        assert radio._port.rx.getvalue() == (
+            b'ME 000\rME 000,0145430000,0,1,1,0,1,0,23,'
+            b'23,000,00600000,0,0000000000,0,1\r'
+        )
