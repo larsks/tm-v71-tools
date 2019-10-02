@@ -246,11 +246,13 @@ class TMV71:
         return self.send_command('PC', band, power)
 
     def get_band_vfo(self, band):
+        band = schema.BANDS.index(band)
         return schema.FO.from_tuple(
             self.send_command('FO', band))
 
     def set_band_vfo(self, band, settings):
         settings['band'] = band
+        band = schema.BANDS.index(band)
         return schema.FO.from_tuple(
             self.send_command('FO', schema.FO.to_csv(settings)))
 
@@ -283,7 +285,8 @@ class TMV71:
         return schema.MU.from_tuple(self.send_command('MU'))
 
     def set_radio_config(self, settings):
-        return self.send_command('MU', schema.MU.to_csv(settings))
+        return schema.MU.from_tuple(
+            self.send_command('MU', schema.MU.to_csv(settings)))
 
     # ----------------------------------------------------------------------
 

@@ -2,6 +2,7 @@ from marshmallow import Schema, post_load, validate
 from marshmallow.fields import Field, String, Float, Boolean, Integer
 from marshmallow.validate import OneOf
 
+BANDS = ['A', 'B']
 BAND_MODE = ['VFO', 'MEM', 'CALL', 'WX']
 TX_POWER = ['HIGH', 'MED', 'LOW']
 ANNOUNCE = ['OFF', 'AUTO', 'MANUAL']
@@ -239,16 +240,17 @@ class RadioSchema(Schema):
 
 
 class Indexed(Field):
-    def __init__(self, values, fmt='{}', **kwargs):
+    def __init__(self, values, fmt='{}', int_base=10, **kwargs):
         super().__init__(**kwargs)
         self.values = values
         self.fmt = fmt
+        self.int_base = int_base
 
     def _serialize(self, value, attr, obj, **kwargs):
         return self.fmt.format(self.values.index(value))
 
     def _deserialize(self, value, attr, data, **kwargs):
-        return self.values[int(value, 16)]
+        return self.values[int(value, self.int_base)]
 
 
 class RadioFloat(Float):
@@ -301,7 +303,7 @@ class ME_Schema(RadioSchema):
 
 
 class FO_Schema(RadioSchema):
-    band = FormattedInteger(required=True)
+    band = Indexed(BANDS, required=True)
     rx_freq = RadioFloat(required=True)
     step = Indexed(values=STEP_SIZE, required=True)
     shift = Indexed(SHIFT_DIRECTION, required=True)
@@ -380,12 +382,16 @@ class MU_Schema(RadioSchema):
     brightness_level = FormattedInteger(required=True)
     auto_brightness = RadioBoolean(required=True)
     backlight_color = Indexed(BACKLIGHT_COLOR, fmt='{:02X}', required=True)
-    pf1_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True)
-    pf2_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True)
-    mic_pf1_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True)
-    mic_pf2_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True)
-    mic_pf3_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True)
-    mic_pf4_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True)
+    pf1_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True, int_base=16)
+    pf2_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True, int_base=16)
+    mic_pf1_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}',
+                          required=True, int_base=16)
+    mic_pf2_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}',
+                          required=True, int_base=16)
+    mic_pf3_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}',
+                          required=True, int_base=16)
+    mic_pf4_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}',
+                          required=True, int_base=16)
     mic_key_lock = RadioBoolean(required=True)
     scan_resume = Indexed(SCAN_RESUME, fmt='{:02X}', required=True)
     apo = Indexed(APO, fmt='{:02X}', required=True)
@@ -393,7 +399,7 @@ class MU_Schema(RadioSchema):
     ext_data_speed = Indexed(EXT_DATA_SPEED, fmt='{:02X}', required=True)
     sqc_source = Indexed(SQC_SOURCE, fmt='{:02X}', required=True)
     auto_pm_store = RadioBoolean(required=True)
-    display_partion_bar = RadioBoolean(required=True)
+    display_partition_bar = RadioBoolean(required=True)
 
 
 # Dynamically create instances of each schema

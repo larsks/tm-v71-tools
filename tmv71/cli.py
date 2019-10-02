@@ -236,32 +236,43 @@ def frequency_band(ctx, band, freq_band):
     print(band)
 
 
-def apply_channel_options(f):
-    options = [
-        click.option('--rx-freq', '--rx', type=float),
-        click.option('--rx-step', type=float),
-        click.option('--shift', type=click.Choice(schema.SHIFT_DIRECTION)),
-        click.option('--reverse', type=bool),
-        click.option('--tone/--no-tone', 'tone_status', default=None),
-        click.option('--ctcss/--no-ctcss', 'ctcss_status', default=None),
-        click.option('--dcs/--no-dcs', 'dcs_status', default=None),
-        click.option('--tone-freq', type=float),
-        click.option('--ctcss-freq', type=float),
-        click.option('--dcs-freq', type=int),
-        click.option('--offset', type=float),
-        click.option('--mode', type=click.Choice(schema.MODE)),
-    ]
+def apply_options_from_schema(model, **kwargs):
+    options = []
 
-    for option in reversed(options):
-        f = option(f)
+    for fname, fspec in model.declared_fields.items():
+        display_name = fname.replace('_', '-')
+        if isinstance(fspec, schema.RadioBoolean):
+            options.append(
+                click.option('--{0}/--no-{0}'.format(display_name),
+                             default=None,
+                             **kwargs.get(fname, {})))
+        elif isinstance(fspec, schema.Indexed):
+            values = [str(v) for v in fspec.values]
+            options.append(click.option('--{}'.format(display_name),
+                                        type=click.Choice(values),
+                                        **kwargs.get(fname, {})))
+        elif isinstance(fspec, schema.FormattedInteger):
+            options.append(click.option('--{}'.format(display_name),
+                                        type=int,
+                                        **kwargs.get(fname, {})))
+        elif isinstance(fspec, schema.RadioFloat):
+            options.append(click.option('--{}'.format(display_name),
+                                        type=float,
+                                        **kwargs.get(fname, {})))
 
-    return f
+    def _apply_options(f):
+        for option in reversed(options):
+            f = option(f)
+
+        return f
+
+    return _apply_options
 
 
 @main.command()
-@apply_channel_options
+@apply_options_from_schema(schema.FO)
+@click.argument('band', type=click.Choice(schema.BANDS))
 @click.pass_context
-@click.argument('band', type=click.Choice(BAND_NAMES))
 def tune(ctx, band, **kwargs):
     '''Get or set VFO frequency and other settings.
 
@@ -286,10 +297,7 @@ def tune(ctx, band, **kwargs):
 
 
 @main.command()
-@apply_channel_options
-@click.option('--tx-freq', '--tx', type=float)
-@click.option('--tx-step', type=float)
-@click.option('--lockout/--no-lockout', is_flag=True, default=None)
+@apply_options_from_schema(schema.ME)
 @click.option('-n', '--name')
 @click.argument('channel', type=int)
 @click.pass_context
@@ -412,6 +420,37 @@ def port_speed(ctx, speed):
             ctx.obj.set_port_speed(speed)
 
     print(speed)
+
+
+@main.command('set')
+@apply_options_from_schema(schema.MU)
+@click.option('--reset', is_flag=True,
+              help='Some options (e.g. brightness-level) require '
+              'a reset before they will take effect')
+@click.pass_context
+def radio_set(ctx, reset, **kwargs):
+    res = ctx.obj.get_radio_config()
+
+    set_radio = False
+    for k, v in kwargs.items():
+        if v is None:
+            continue
+
+        set_radio = True
+        res[k] = v
+
+    if set_radio:
+        LOG.info('configuring radio')
+        res = ctx.obj.set_radio_config(res)
+
+    if reset:
+        with ctx.obj.programming_mode():
+            pass
+
+    print(fmt_dict(res))
+
+
+# ----------------------------------------------------------------------
 
 
 @main.group()
