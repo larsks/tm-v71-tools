@@ -36,6 +36,7 @@ You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass th
 - [poweron-message](#poweron-message)
 - [port-speed](#port-speed)
 - [ptt](#ptt)
+- [set](#set)
 - [tune](#tune)
 - [txpower](#txpower)
 - [type](#type)
@@ -110,20 +111,21 @@ Usage: tmv71 entry [OPTIONS] CHANNEL
   View or edit memory channels.
 
 Options:
-  --rx-freq, --rx FLOAT
-  --rx-step FLOAT
+  --channel INTEGER
+  --rx-freq FLOAT
+  --step [5|6.25|28.33|10|12.5|15|20|25|30|50|100]
   --shift [SIMPLEX|UP|DOWN|SPLIT]
-  --reverse INTEGER
-  --tone-status INTEGER
-  --ctcss-status INTEGER
-  --dcs-status INTEGER
-  --tone-freq FLOAT
-  --ctcss-freq FLOAT
-  --dcs-freq INTEGER
+  --reverse / --no-reverse
+  --tone-status / --no-tone-status
+  --ctcss-status / --no-ctcss-status
+  --dcs-status / --no-dcs-status
+  --tone-freq [67|69.3|71.9|74.4|77|79.7|82.5|85.4|88.5|91.5|94.8|97.4|100|103.5|107.2|110.9|114.8|118.8|123|127.3|131.8|136.5|141.3|146.2|151.4|156.7|162.2|167.9|173.8|179.9|186.2|192.8|203.5|240.7|210.7|218.1|225.7|229.1|233.6|241.8|250.3|254.1]
+  --ctcss-freq [67|69.3|71.9|74.4|77|79.7|82.5|85.4|88.5|91.5|94.8|97.4|100|103.5|107.2|110.9|114.8|118.8|123|127.3|131.8|136.5|141.3|146.2|151.4|156.7|162.2|167.9|173.8|179.9|186.2|192.8|203.5|240.7|210.7|218.1|225.7|229.1|233.6|241.8|250.3|254.1]
+  --dcs-freq [23|25|26|31|32|36|43|47|51|53|54|65|71|72|73|74|114|115|116|122|125|131|132|134|143|145|152|155|156|162|165|172|174|205|212|223|225|226|243|244|245|246|251|252|255|261|263|265|266|271|274|306|311|315|325|331|332|343|346|351|356|364|365|371|411|412|413|423|431|432|445|446|452|454|455|462|464|465|466|503|506|516|523|565|532|546|565|606|612|624|627|631|632|654|662|664|703|712|723|731|732|734|743|754]
   --offset FLOAT
   --mode [FM|AM|NFM]
-  --tx-freq, --tx FLOAT
-  --tx-step FLOAT
+  --tx-freq FLOAT
+  --tx-step [5|6.25|28.33|10|12.5|15|20|25|30|50|100]
   --lockout / --no-lockout
   -n, --name TEXT
   --help                          Show this message and exit.
@@ -206,10 +208,62 @@ Options:
   --help  Show this message and exit.
 ```
 
+### set
+
+```
+Usage: tmv71 set [OPTIONS]
+
+Options:
+  --beep / --no-beep
+  --cbeep-volume INTEGER
+  --external-speaker-mode INTEGER
+  --announce [OFF|AUTO|MANUAL]
+  --language [English|Japanese]
+  --voice-volume INTEGER
+  --voice-speed INTEGER
+  --playback-repeat / --no-playback-repeat
+  --playback-repeat-interval INTEGER
+  --continous-recording / --no-continous-recording
+  --vhf-aip / --no-vhf-aip
+  --uhf-aip / --no-uhf-aip
+  --s-meter-sql-hang-time [OFF|125|250|500]
+  --mute-hang-time [OFF|125|250|500|750|1000]
+  --beatshift / --no-beatshift
+  --timeout-timer INTEGER
+  --recall-method [ALL|CURRENT]
+  --echolink-speed [FAST|SLOW]
+  --dtmf-hold / --no-dtmf-hold
+  --dtmf-speed [FAST|SLOW]
+  --dtmf-pause [100|250|500|750|1000|1500|2000]
+  --dtmf-key-lock / --no-dtmf-key-lock
+  --auto-repeater-offset / --no-auto-repeater-offset
+  --hold-1750hz / --no-hold-1750hz
+  --brightness-level INTEGER
+  --auto-brightness / --no-auto-brightness
+  --backlight-color [AMBER|GREEN]
+  --pf1-key [WX|FREQBAND|CTRL|MONITOR|VGS|VOICE|GROUP_UP|MENU|MUTE|SHIFT|DUAL|MEM_TO_VFO|VFO|MR|CALL|MHZ|TONE|REV|LOW|LOCK|A_B|ENTER|1750HZ]
+  --pf2-key [WX|FREQBAND|CTRL|MONITOR|VGS|VOICE|GROUP_UP|MENU|MUTE|SHIFT|DUAL|MEM_TO_VFO|VFO|MR|CALL|MHZ|TONE|REV|LOW|LOCK|A_B|ENTER|1750HZ]
+  --mic-pf1-key [WX|FREQBAND|CTRL|MONITOR|VGS|VOICE|GROUP_UP|MENU|MUTE|SHIFT|DUAL|MEM_TO_VFO|VFO|MR|CALL|MHZ|TONE|REV|LOW|LOCK|A_B|ENTER|1750HZ]
+  --mic-pf2-key [WX|FREQBAND|CTRL|MONITOR|VGS|VOICE|GROUP_UP|MENU|MUTE|SHIFT|DUAL|MEM_TO_VFO|VFO|MR|CALL|MHZ|TONE|REV|LOW|LOCK|A_B|ENTER|1750HZ]
+  --mic-pf3-key [WX|FREQBAND|CTRL|MONITOR|VGS|VOICE|GROUP_UP|MENU|MUTE|SHIFT|DUAL|MEM_TO_VFO|VFO|MR|CALL|MHZ|TONE|REV|LOW|LOCK|A_B|ENTER|1750HZ]
+  --mic-pf4-key [WX|FREQBAND|CTRL|MONITOR|VGS|VOICE|GROUP_UP|MENU|MUTE|SHIFT|DUAL|MEM_TO_VFO|VFO|MR|CALL|MHZ|TONE|REV|LOW|LOCK|A_B|ENTER|1750HZ]
+  --mic-key-lock / --no-mic-key-lock
+  --scan-resume [TIME|CARRIER|SEEK]
+  --apo [OFF|30|60|90|120|180]
+  --ext-data-band [A|B|TXA_RXB|TXB_RXA]
+  --ext-data-speed [1200|9600]
+  --sqc-source [OFF|BUSY|SQL|TX|BUSY_TX|SQL_TX]
+  --auto-pm-store / --no-auto-pm-store
+  --display-partition-bar / --no-display-partition-bar
+  --reset                         Some options (e.g. brightness-level) require
+                                  a reset before they will take effect
+  --help                          Show this message and exit.
+```
+
 ### tune
 
 ```
-Usage: tmv71 tune [OPTIONS] [0|A|1|B]
+Usage: tmv71 tune [OPTIONS] [A|B]
 
   Get or set VFO frequency and other settings.
 
@@ -217,16 +271,17 @@ Usage: tmv71 tune [OPTIONS] [0|A|1|B]
   band command to change bands.
 
 Options:
-  --rx-freq, --rx FLOAT
-  --rx-step FLOAT
+  --band [A|B]
+  --rx-freq FLOAT
+  --step [5|6.25|28.33|10|12.5|15|20|25|30|50|100]
   --shift [SIMPLEX|UP|DOWN|SPLIT]
-  --reverse INTEGER
-  --tone-status INTEGER
-  --ctcss-status INTEGER
-  --dcs-status INTEGER
-  --tone-freq FLOAT
-  --ctcss-freq FLOAT
-  --dcs-freq INTEGER
+  --reverse / --no-reverse
+  --tone-status / --no-tone-status
+  --ctcss-status / --no-ctcss-status
+  --dcs-status / --no-dcs-status
+  --tone-freq [67|69.3|71.9|74.4|77|79.7|82.5|85.4|88.5|91.5|94.8|97.4|100|103.5|107.2|110.9|114.8|118.8|123|127.3|131.8|136.5|141.3|146.2|151.4|156.7|162.2|167.9|173.8|179.9|186.2|192.8|203.5|240.7|210.7|218.1|225.7|229.1|233.6|241.8|250.3|254.1]
+  --ctcss-freq [67|69.3|71.9|74.4|77|79.7|82.5|85.4|88.5|91.5|94.8|97.4|100|103.5|107.2|110.9|114.8|118.8|123|127.3|131.8|136.5|141.3|146.2|151.4|156.7|162.2|167.9|173.8|179.9|186.2|192.8|203.5|240.7|210.7|218.1|225.7|229.1|233.6|241.8|250.3|254.1]
+  --dcs-freq [23|25|26|31|32|36|43|47|51|53|54|65|71|72|73|74|114|115|116|122|125|131|132|134|143|145|152|155|156|162|165|172|174|205|212|223|225|226|243|244|245|246|251|252|255|261|263|265|266|271|274|306|311|315|325|331|332|343|346|351|356|364|365|371|411|412|413|423|431|432|445|446|452|454|455|462|464|465|466|503|506|516|523|565|532|546|565|606|612|624|627|631|632|654|662|664|703|712|723|731|732|734|743|754]
   --offset FLOAT
   --mode [FM|AM|NFM]
   --help                          Show this message and exit.
