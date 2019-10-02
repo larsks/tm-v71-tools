@@ -192,7 +192,7 @@ def band_mode(ctx, mode, band):
     else:
         res = ctx.obj.set_band_mode(band, int(mode))
 
-    print(*res)
+    print(schema.BAND_MODE[int(res[1])])
 
 
 @main.command()
