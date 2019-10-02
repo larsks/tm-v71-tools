@@ -1,4 +1,4 @@
-from marshmallow import Schema
+from marshmallow import Schema, post_load
 from marshmallow.fields import Field, String, Float, Boolean, Integer
 from marshmallow.validate import OneOf
 
@@ -177,6 +177,15 @@ SHIFT_DIRECTION = ['SIMPLEX', 'UP', 'DOWN', 'SPLIT']
 MODE = ['FM', 'AM', 'NFM']
 
 
+class SchemaDict(dict):
+    def __init__(self, schema, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.schema = schema
+
+    def items(self):
+        return [(k, self[k]) for k in self.schema._declared_fields]
+
+
 class RadioSchema(Schema):
     def from_tuple(self, values):
         '''Read in values from a tuple
@@ -207,6 +216,10 @@ class RadioSchema(Schema):
 
     def from_raw_tuple(self, values):
         return dict(zip(self.declared_fields, values))
+
+    @post_load
+    def add_schema(self, data, **kwargs):
+        return SchemaDict(self, data)
 
 
 class Indexed(Field):

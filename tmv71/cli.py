@@ -241,10 +241,10 @@ def apply_channel_options(f):
         click.option('--rx-freq', '--rx', type=float),
         click.option('--rx-step', type=float),
         click.option('--shift', type=click.Choice(schema.SHIFT_DIRECTION)),
-        click.option('--reverse', type=int),
-        click.option('--tone-status', type=int),
-        click.option('--ctcss-status', type=int),
-        click.option('--dcs-status', type=int),
+        click.option('--reverse', type=bool),
+        click.option('--tone/--no-tone', 'tone_status', default=None),
+        click.option('--ctcss/--no-ctcss', 'ctcss_status', default=None),
+        click.option('--dcs/--no-dcs', 'dcs_status', default=None),
         click.option('--tone-freq', type=float),
         click.option('--ctcss-freq', type=float),
         click.option('--dcs-freq', type=int),
@@ -279,9 +279,10 @@ def tune(ctx, band, **kwargs):
         res[k] = v
 
     if set_radio:
+        LOG.info('setting vfo for band %s', band)
         res = ctx.obj.set_band_vfo(band, res)
-    else:
-        print(fmt_dict(res))
+
+    print(fmt_dict(res))
 
 
 @main.command()
@@ -306,12 +307,15 @@ def entry(ctx, channel, name, **kwargs):
         res[k] = v
 
     if name is not None:
+        LOG.info('setting name for channel %s',  channel)
         ctx.obj.set_channel_name(channel, name)
 
     if set_radio:
+        LOG.info('configuring channel %s',  channel)
         res = ctx.obj.set_channel_entry(channel, res)
-    else:
-        print(fmt_dict(res))
+        res = ctx.obj.get_channel_entry(channel)
+
+    print(fmt_dict(res))
 
 
 @main.command()
@@ -344,7 +348,7 @@ def export_channels(ctx, output, channels):
 
             try:
                 channel_config = ctx.obj.get_channel_entry(channel)
-                values = schema.ME.to_raw_tuple(channel_config)
+                values = channel_config.schema.to_raw_tuple(channel_config)
                 values.append(ctx.obj.get_channel_name(channel))
 
                 output.write(','.join(json.dumps(x) for x in values))
