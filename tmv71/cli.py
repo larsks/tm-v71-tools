@@ -239,8 +239,7 @@ def frequency_band(ctx, band, freq_band):
 def apply_channel_options(f):
     options = [
         click.option('--rx-freq', '--rx', type=float),
-        click.option('--tx-freq', '--tx', type=float),
-        click.option('--step', type=float),
+        click.option('--rx-step', type=float),
         click.option('--shift', type=click.Choice(schema.SHIFT_DIRECTION)),
         click.option('--reverse', type=int),
         click.option('--tone-status', type=int),
@@ -251,7 +250,6 @@ def apply_channel_options(f):
         click.option('--dcs-freq', type=int),
         click.option('--offset', type=float),
         click.option('--mode', type=click.Choice(schema.MODE)),
-        click.option('--lockout/--no-lockout', is_flag=True, default=None),
     ]
 
     for option in reversed(options):
@@ -265,11 +263,32 @@ def apply_channel_options(f):
 @click.pass_context
 @click.argument('band', type=click.Choice(BAND_NAMES))
 def tune(ctx, band, **kwargs):
-    print('Not implemented')
+    '''Get or set VFO frequency and other settings.
+
+    You can only tune to frequencies on the current band. Use the
+    frequency-band command to change bands.'''
+
+    res = ctx.obj.get_band_vfo(band)
+
+    set_radio = False
+    for k, v in kwargs.items():
+        if v is None:
+            continue
+
+        set_radio = True
+        res[k] = v
+
+    if set_radio:
+        res = ctx.obj.set_band_vfo(band, res)
+    else:
+        print(fmt_dict(res))
 
 
 @main.command()
 @apply_channel_options
+@click.option('--tx-freq', '--tx', type=float)
+@click.option('--tx-step', type=float)
+@click.option('--lockout/--no-lockout', is_flag=True, default=None)
 @click.option('-n', '--name')
 @click.argument('channel', type=int)
 @click.pass_context

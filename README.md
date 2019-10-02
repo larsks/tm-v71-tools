@@ -111,8 +111,7 @@ Usage: tmv71 entry [OPTIONS] CHANNEL
 
 Options:
   --rx-freq, --rx FLOAT
-  --tx-freq, --tx FLOAT
-  --step FLOAT
+  --rx-step FLOAT
   --shift [SIMPLEX|UP|DOWN|SPLIT]
   --reverse INTEGER
   --tone-status INTEGER
@@ -123,6 +122,8 @@ Options:
   --dcs-freq INTEGER
   --offset FLOAT
   --mode [FM|AM|NFM]
+  --tx-freq, --tx FLOAT
+  --tx-step FLOAT
   --lockout / --no-lockout
   -n, --name TEXT
   --help                          Show this message and exit.
@@ -210,10 +211,14 @@ Options:
 ```
 Usage: tmv71 tune [OPTIONS] [0|A|1|B]
 
+  Get or set VFO frequency and other settings.
+
+  You can only tune to frequencies on the current band. Use the frequency-
+  band command to change bands.
+
 Options:
   --rx-freq, --rx FLOAT
-  --tx-freq, --tx FLOAT
-  --step FLOAT
+  --rx-step FLOAT
   --shift [SIMPLEX|UP|DOWN|SPLIT]
   --reverse INTEGER
   --tone-status INTEGER
@@ -224,7 +229,6 @@ Options:
   --dcs-freq INTEGER
   --offset FLOAT
   --mode [FM|AM|NFM]
-  --lockout / --no-lockout
   --help                          Show this message and exit.
 ```
 
