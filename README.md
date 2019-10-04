@@ -470,10 +470,10 @@ tmv71 memory read-block -o data.bin 0
 
 ### Set port speed using write-block
 
-The PC port speed is stored as a byte at offset 33 (`0x21`) in block 0. The following command will set the PC port speed to 57600 bps:
+The PC port speed is stored as a byte at address 33 (`0x21`). The following command will set the PC port speed to 57600 bps:
 
 ```
-tmv71 memory write-block -d '03' 0 0x21
+tmv71 memory write-block -d '03' 0x21
 ```
 
 ## API Examples
