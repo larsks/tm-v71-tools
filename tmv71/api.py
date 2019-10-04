@@ -73,7 +73,7 @@ class TMV71:
         self.init_serial()
 
     def __repr__(self):
-        return '<TMV71 on {0.dev} @ {0.speed}>'.format(self)
+        return '<TMV71 on {0.port} @ {0.speed}>'.format(self)
 
     def init_serial(self):
         LOG.info('opening %s at %d bps', self.port, self.speed)
