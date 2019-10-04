@@ -53,13 +53,13 @@ def patch_serial(monkeypatch):
 
 @pytest.fixture
 def radio(patch_serial):
-    radio = api.TMV71(dev='dummy', speed=0, timeout=0)
+    radio = api.TMV71(port='dummy', speed=0, timeout=0)
     return radio
 
 
 class TestApi:
     def test_create_api_object(self, radio):
-        assert radio.dev == 'dummy'
+        assert radio.port == 'dummy'
 
     def test_clear(self, radio):
         radio._port.raise_next_read(api.ReadTimeoutError)

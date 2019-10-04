@@ -64,8 +64,8 @@ def pm(f):
 
 
 class TMV71:
-    def __init__(self, dev, speed=9600, debug=False, timeout=0.5):
-        self.dev = dev
+    def __init__(self, port, speed=9600, debug=False, timeout=0.5):
+        self.port = port
         self.speed = speed
         self.debug = debug
         self.timeout = timeout
@@ -76,8 +76,8 @@ class TMV71:
         return '<TMV71 on {0.dev} @ {0.speed}>'.format(self)
 
     def init_serial(self):
-        LOG.info('opening %s at %d bps', self.dev, self.speed)
-        self._port = serial.Serial(self.dev,
+        LOG.info('opening %s at %d bps', self.port, self.speed)
+        self._port = serial.Serial(self.port,
                                    baudrate=self.speed,
                                    rtscts=True,
                                    dsrdtr=True,
