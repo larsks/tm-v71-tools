@@ -84,10 +84,10 @@ Usage: tmv71 control-band [OPTIONS]
   Select control and ptt band.
 
 Options:
-  -c, --control INTEGER
-  -p, --ptt INTEGER
-  -b, --both, --cp INTEGER
-  --help                    Show this message and exit.
+  -c, --control TEXT
+  -p, --ptt TEXT
+  -b, --both, --cp TEXT
+  --help                 Show this message and exit.
 ```
 
 ### dual-band
@@ -212,6 +212,8 @@ Options:
 
 ```
 Usage: tmv71 set [OPTIONS]
+
+  Get or set various configuration options.
 
 Options:
   --beep / --no-beep
@@ -373,7 +375,7 @@ Options:
 ### memory read-block
 
 ```
-Usage: tmv71 memory read-block [OPTIONS] BLOCK [OFFSET] [LENGTH]
+Usage: tmv71 memory read-block [OPTIONS] ADDRESS [SIZE]
 
   Read one or more memory blocks from the radio.
 
@@ -389,13 +391,14 @@ Usage: tmv71 memory read-block [OPTIONS] BLOCK [OFFSET] [LENGTH]
 
 Options:
   -o, --output FILENAME
+  -h, --hexdump
   --help                 Show this message and exit.
 ```
 
 ### memory write-block
 
 ```
-Usage: tmv71 memory write-block [OPTIONS] BLOCK [OFFSET] [LENGTH]
+Usage: tmv71 memory write-block [OPTIONS] ADDRESS [LENGTH]
 
   Write data to radio memory.
 

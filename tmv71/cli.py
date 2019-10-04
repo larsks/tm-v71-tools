@@ -438,6 +438,7 @@ def port_speed(ctx, speed):
               'a reset before they will take effect')
 @click.pass_context
 def radio_set(ctx, reset, **kwargs):
+    '''Get or set various configuration options.'''
     res = ctx.obj.get_radio_config()
 
     set_radio = False
@@ -464,7 +465,13 @@ def radio_set(ctx, reset, **kwargs):
 @click.option('--repeater/--no-repeater', default=None)
 @click.option('--normal', is_flag=True, default=None)
 @click.pass_context
-def operating_mode(ctx, wireless, repeater, normal):
+def op_mode(ctx, wireless, repeater, normal):
+    '''Control the radio operating mode.
+
+    Use this to activate the cross-band repeater feature (--repeater),
+    the wireless remote control (--wireless), or both. Use --normal to
+    return to normal operation.
+    '''
     with ctx.obj.programming_mode():
         for opt in [wireless, repeater, normal]:
             if opt is not None:
@@ -484,6 +491,11 @@ def operating_mode(ctx, wireless, repeater, normal):
 @click.argument('remote_id', required=False)
 @click.pass_context
 def remote_id(ctx, remote_id):
+    '''Get or set the remote id.
+
+    This is the access code require to control the radio in wireless
+    remote mode.'''
+
     with ctx.obj.programming_mode():
         if remote_id is None:
             res = ctx.obj.get_remote_id()
