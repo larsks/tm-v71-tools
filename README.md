@@ -480,6 +480,7 @@ The following examples assume:
 ```
 >>> from tmv71 import api
 >>> radio = api.TMV71(port='/dev/ttyUSB0', speed=57600)
+
 ```
 
 ### Get radio ID
@@ -487,6 +488,7 @@ The following examples assume:
 ```
 >>> radio.radio_id()
 ['TM-V71']
+
 ```
 
 ### Get a channel entry
@@ -510,15 +512,17 @@ The following examples assume:
   'tone_status': False,
   'tx_freq': 0.0,
   'tx_step': 5}
+
 ```
 
 ### Setting a channel entry
 
 ```
 >>> entry = radio.get_channel_entry(0)
->>> entry['rx_freq'] = 442.25
+>>> entry['rx_freq'] = 145.43
 >>> radio.set_channel_entry(0, entry)
 ['']
+
 ```
 
 ### Get the port speed
@@ -530,6 +534,7 @@ The get/set port speed methods rely on direct memory access, which means the rad
 ...   radio.get_port_speed()
 ...
 '57600'
+
 ```
 
 ## Contributing
