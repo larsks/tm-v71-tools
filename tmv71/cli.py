@@ -459,6 +459,39 @@ def radio_set(ctx, reset, **kwargs):
     print(fmt_dict(res))
 
 
+@main.command()
+@click.option('--wireless/--no-wireless', default=None)
+@click.option('--repeater/--no-repeater', default=None)
+@click.option('--normal', is_flag=True, default=None)
+@click.pass_context
+def operating_mode(ctx, wireless, repeater, normal):
+    with ctx.obj.programming_mode():
+        for opt in [wireless, repeater, normal]:
+            if opt is not None:
+                break
+        else:
+            print(*ctx.obj.get_operating_mode())
+            return
+
+        if normal:
+            repeater = 0
+            wireless = 0
+
+        ctx.obj.set_operating_mode(repeater, wireless)
+
+
+@main.command()
+@click.argument('remote_id', required=False)
+@click.pass_context
+def remote_id(ctx, remote_id):
+    with ctx.obj.programming_mode():
+        if remote_id is None:
+            res = ctx.obj.get_remote_id()
+            print(res.decode('ascii'))
+        else:
+            ctx.obj.set_remote_id(remote_id.encode('ascii'))
+
+
 # ----------------------------------------------------------------------
 
 

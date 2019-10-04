@@ -3,6 +3,7 @@ from functools import wraps
 import hexdump
 import logging
 import serial
+import struct
 import sys
 
 from tmv71 import schema
@@ -14,6 +15,8 @@ FREQUENCY_BAND = ['118', '144', '220', '300', '430', '1200']
 M_OFFSET_PORT_SPEED = 0x21
 M_OFFSET_BANDA_BAND = 0x202
 M_OFFSET_BANDB_BAND = 0x20E
+M_OFFSET_OPERATING_MODE = 0x10
+M_OFFSET_REMOTE_ID = 0x12
 
 
 class CommunicationError(Exception):
@@ -340,6 +343,33 @@ class TMV71:
     def reset(self):
         '''Reset to default configuration'''
         self.write_block(0, b'\xff')
+
+    @pm
+    def get_operating_mode(self):
+        '''Get current radio operating mode'''
+
+        res = self.read_block(M_OFFSET_OPERATING_MODE, 2)
+        return struct.unpack('<BB', res)
+
+    @pm
+    def set_operating_mode(self, repeater, wireless):
+        wireless = 1 if wireless else 0
+        repeater = 1 if repeater else 0
+
+        self.write_block(M_OFFSET_OPERATING_MODE,
+                         struct.pack('<BB', repeater, wireless))
+
+    @pm
+    def get_remote_id(self):
+        res = self.read_block(0x12, 3)
+        return res
+
+    @pm
+    def set_remote_id(self, remote_id):
+        if len(remote_id) != 3:
+            raise ValueError('remote id must be three digits')
+
+        self.write_block(0x12, remote_id)
 
     # ----------------------------------------------------------------------
 
