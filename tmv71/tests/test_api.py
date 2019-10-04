@@ -81,7 +81,7 @@ class TestApi:
 
     def test_read_block_no_pm(self, radio):
         with pytest.raises(api.WrongModeError):
-            radio.read_block(0, 0, 4)
+            radio.read_block(0, 4)
 
     def test_read_block(self, radio):
         test_data = b'\x01\x02\x03\x04'
@@ -91,7 +91,7 @@ class TestApi:
         radio._port.stuff(b'\x06\x06\r\x00')
 
         with radio.programming_mode():
-            data = radio.read_block(0, 0, 4)
+            data = radio.read_block(0, 4)
             assert radio._port.rx.getvalue().endswith(b'R\x00\x00\x04\x06')
             assert data == test_data
 
@@ -102,8 +102,6 @@ class TestApi:
         assert res['model'] == 'K'
 
     def test_get_port_speed(self, radio):
-        block, offset = api.M_OFFSET_PORT_SPEED
-
         radio._port.stuff(b'0M\rW\x00\x00\x04\x03')
         radio._port.stuff(b'\x06\x06\r\x00')
 
@@ -112,8 +110,6 @@ class TestApi:
             assert res == '57600'
 
     def test_set_port_speed(self, radio):
-        block, offset = api.M_OFFSET_PORT_SPEED
-
         radio._port.stuff(b'0M\r\x06\x06\r\x00')
 
         with radio.programming_mode():

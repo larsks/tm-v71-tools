@@ -135,9 +135,9 @@ def channel(ctx, band, channel):
 
 
 @main.command()
-@click.option('-c', '--control', type=int)
-@click.option('-p', '--ptt', type=int)
-@click.option('-b', '--both', '--cp', type=int)
+@click.option('-c', '--control')
+@click.option('-p', '--ptt')
+@click.option('-b', '--both', '--cp')
 @click.pass_context
 def control_band(ctx, control, ptt, both):
     '''Select control and ptt band.'''
@@ -510,11 +510,10 @@ def flexint(v):
 @click.option('-o', '--output', type=click.File('wb'),
               default=sys.stdout.buffer)
 @click.option('-h', '--hexdump', '_hexdump', is_flag=True)
-@click.argument('block')
-@click.argument('offset', type=flexint, default='0', required=False)
-@click.argument('length', type=flexint, default='0', required=False)
+@click.argument('address')
+@click.argument('size', type=flexint, default='0', required=False)
 @click.pass_context
-def read_block(ctx, output, _hexdump, block, offset, length):
+def read_block(ctx, output, _hexdump, address, size):
     '''Read one or more memory blocks from the radio.
 
     This command will by default output the binary data to stdout. Use the
@@ -527,17 +526,17 @@ def read_block(ctx, output, _hexdump, block, offset, length):
     Nothing stops you from providing an offset and size when specifying
     multiple blocks, but it probably doesn't make sense.'''
 
-    if ':' in block:
-        b_start, b_end = (flexint(x) for x in block.split(':'))
-        blocks = range(b_start, b_end + 1)
+    if ':' in address:
+        addr_start, addr_end = (flexint(x) for x in address.split(':'))
+        addr_range = range(addr_start, addr_end)
     else:
-        blocks = [flexint(block)]
+        addr_range = [flexint(address)]
 
     with output, ctx.obj.programming_mode():
-        for block in blocks:
-            LOG.info('reading %d bytes of memory from block %d offset %d',
-                     256 if length == 0 else length, block, offset)
-            data = ctx.obj.read_block(block, offset, length)
+        for addr in addr_range:
+            LOG.info('reading %d bytes of memory from %x',
+                     256 if size == 0 else size, addr)
+            data = ctx.obj.read_block(addr, size)
 
             if _hexdump:
                 output.write(
@@ -550,8 +549,7 @@ def read_block(ctx, output, _hexdump, block, offset, length):
 @memory.command()
 @click.option('-i', '--input', type=click.File('rb'))
 @click.option('-d', '--hexdata')
-@click.argument('block', type=flexint)
-@click.argument('offset', type=flexint, default='0', required=False)
+@click.argument('address', type=flexint)
 @click.argument('length', type=flexint, default='0', required=False)
 @click.pass_context
 def write_block(ctx, input, hexdata, block, offset, length):

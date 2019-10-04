@@ -11,9 +11,9 @@ LOG = logging.getLogger(__name__)
 PORT_SPEED = ['9600', '19200', '38400', '57600']
 FREQUENCY_BAND = ['118', '144', '220', '300', '430', '1200']
 
-M_OFFSET_PORT_SPEED = (0x0, 0x21)
-M_OFFSET_BANDA_BAND = (0x2, 0x2)
-M_OFFSET_BANDB_BAND = (0x2, 0xE)
+M_OFFSET_PORT_SPEED = 0x21
+M_OFFSET_BANDA_BAND = 0x202
+M_OFFSET_BANDB_BAND = 0x20E
 
 
 class CommunicationError(Exception):
@@ -293,26 +293,24 @@ class TMV71:
 
     @pm
     def get_port_speed(self):
-        block, offset = M_OFFSET_PORT_SPEED
-        speed = self.read_block(block, offset, 1)
+        speed = self.read_block(M_OFFSET_PORT_SPEED, 1)
         return PORT_SPEED[int.from_bytes(speed, byteorder='big')]
 
     @pm
     def set_port_speed(self, speed):
         speed = PORT_SPEED.index(speed)
-        block, offset = M_OFFSET_PORT_SPEED
-        self.write_block(block, offset, bytes([speed]))
+        self.write_block(M_OFFSET_PORT_SPEED, bytes([speed]))
 
     @pm
     def get_frequency_band(self, band):
         if band == 0:
-            block, offset = M_OFFSET_BANDA_BAND
+            address = M_OFFSET_BANDA_BAND
         elif band == 1:
-            block, offset = M_OFFSET_BANDB_BAND
+            address = M_OFFSET_BANDB_BAND
         else:
             raise ValueError('invalid band')
 
-        res = self.read_block(2, offset, 1)
+        res = self.read_block(address, 1)
         res = int.from_bytes(res, byteorder=sys.byteorder)
 
         # The constants in FREQUENCY_BAND are correct for band A, but
@@ -330,18 +328,18 @@ class TMV71:
         freq_band += (4 * band)
 
         if band == 0:
-            block, offset = M_OFFSET_BANDA_BAND
+            address = M_OFFSET_BANDA_BAND
         elif band == 1:
-            block, offset = M_OFFSET_BANDB_BAND
+            address = M_OFFSET_BANDB_BAND
         else:
             raise ValueError('invalid band')
 
-        self.write_block(2, offset, bytes([freq_band]))
+        self.write_block(address, bytes([freq_band]))
 
     @pm
     def reset(self):
         '''Reset to default configuration'''
-        self.write_block(0, 0, b'\xff')
+        self.write_block(0, b'\xff')
 
     # ----------------------------------------------------------------------
 
@@ -353,7 +351,7 @@ class TMV71:
         context manager.  For example:
 
             with radio.programming_mode():
-                radio.read_block(0, 0, 0)
+                radio.read_block(0, 0)
 
         Failure to use the context manager will result in
         WrongModeError exception.'''
@@ -382,28 +380,32 @@ class TMV71:
                 raise UnexpectedResponseError()
 
     @pm
-    def read_block(self, block, offset, length):
+    def read_block(self, address, size):
         '''Read data from the radio'''
 
-        LOG.debug('read block %d, offset %d, length %d', block, offset, length)
-        self.write_bytes(bytes([ord('R'), block, offset, length]))
+        block = address // 256
+        offset = address-(block * 256)
+        LOG.debug('read block %d, offset %d, size %d', block, offset, size)
+        self.write_bytes(bytes([ord('R'), block, offset, size]))
         self.read_bytes(4)
-        data = self.read_bytes(length if length else 256)
+        data = self.read_bytes(size if size else 256)
         self.write_bytes(bytes([6]))
         self.check_ack()
         return data
 
     @pm
-    def write_block(self, block, offset, data):
+    def write_block(self, address, data):
         '''Write data to the radio'''
 
-        length = len(data)
-        LOG.debug('write block %d, offset %d, length %d',
-                  block, offset, length)
-        if length == 256:
-            length = 0
+        block = address // 256
+        offset = address-(block * 256)
+        size = len(data)
+        LOG.debug('write block %d, offset %d, size %d',
+                  block, offset, size)
+        if size == 256:
+            size = 0
 
-        self.write_bytes(bytes([ord('W'), block, offset, length]))
+        self.write_bytes(bytes([ord('W'), block, offset, size]))
         self.write_bytes(bytes(data))
         self.check_ack()
 
@@ -421,28 +423,30 @@ class TMV71:
         '''Read data from the radio and write it to a file-like object.'''
 
         for block in range(0x7F):
+            addr = block * 256
             LOG.debug('reading block %d', block)
-            data = self.read_block(block, 0, 0)
+            data = self.read_block(addr, 0)
             fd.write(data)
 
     @pm
     def write_memory(self, fd):
         '''Read data from a file-like object and write it to the radio.'''
 
-        data = self.read_block(0, 0, 4)
+        data = self.read_block(0, 4)
         if data != b'\x00\x4b\x01\xff':
             LOG.warning('unexpected content in block 0 (continuing)')
 
-        self.write_block(0, 0, b'\xff')
+        self.write_block(0, b'\xff')
 
         fd.seek(4)
-        self.write_block(0, 4, fd.read(0xfc))
+        self.write_block(0x04, fd.read(0xfc))
 
         for block in range(1, 0x7F):
+            addr = block * 256
             LOG.debug('writing block %d', block)
             data = fd.read(256)
-            self.write_block(block, 0, data)
+            self.write_block(addr, data)
 
-        self.write_block(0, 0, b'\x00\x4b\x01\xff')
+        self.write_block(0, b'\x00\x4b\x01\xff')
 
     # ----------------------------------------------------------------------
