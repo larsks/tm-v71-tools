@@ -564,18 +564,21 @@ def read_block(ctx, output, _hexdump, address, size):
     This command will by default output the binary data to stdout. Use the
     '-o' option to write to a file instead.
 
-    You can read a range of blocks by specifying the start and end
-    (inclusive) of the range separated by a colon.  E.g., to read blocks 0
-    through 20, you could use `tmv71 memory read-block 0:20`.
+    You can read a range of addresses by specifying the start and end
+    (inclusive) of the range separated by a colon.  E.g., to read addresses
+    0x1700 through 0x557f, you could use `tmv71 memory read-block
+    0x1700:0x557f`.'''
 
-    Nothing stops you from providing an offset and size when specifying
-    multiple blocks, but it probably doesn't make sense.'''
-
-    if ':' in address:
+    if ':' in address and size != 0:
+        raise ValueError('you cannot specify a size '
+                         'when using an address range')
+    elif ':' in address:
         addr_start, addr_end = (flexint(x) for x in address.split(':'))
-        addr_range = range(addr_start, addr_end)
     else:
-        addr_range = [flexint(address)]
+        addr_start = flexint(address)
+        addr_end = addr_start + 256
+
+    addr_range = range(addr_start, addr_end, 256)
 
     with output, ctx.obj.programming_mode():
         for addr in addr_range:
@@ -597,7 +600,7 @@ def read_block(ctx, output, _hexdump, address, size):
 @click.argument('address', type=flexint)
 @click.argument('length', type=flexint, default='0', required=False)
 @click.pass_context
-def write_block(ctx, input, hexdata, block, offset, length):
+def write_block(ctx, input, hexdata, address, length):
     '''Write data to radio memory.
 
     This command will by default read data from stdin. Use the
@@ -617,8 +620,8 @@ def write_block(ctx, input, hexdata, block, offset, length):
     elif datalen == 256:
         datalen = 0
 
-    LOG.info('writing %d bytes of data to block %d offset %d',
-             256 if datalen == 0 else datalen, block, offset)
+    LOG.info('writing %d bytes of data to address %d',
+             256 if datalen == 0 else datalen, address)
 
     with ctx.obj.programming_mode():
-        ctx.obj.write_block(block, offset, data)
+        ctx.obj.write_block(address, data)
