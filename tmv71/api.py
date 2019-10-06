@@ -349,7 +349,7 @@ class TMV71:
         '''Get current radio operating mode'''
 
         res = self.read_block(M_OFFSET_OPERATING_MODE, 2)
-        return struct.unpack('<BB', res)
+        return struct.unpack('BB', res)
 
     @pm
     def set_operating_mode(self, repeater, wireless):
@@ -357,7 +357,7 @@ class TMV71:
         repeater = 1 if repeater else 0
 
         self.write_block(M_OFFSET_OPERATING_MODE,
-                         struct.pack('<BB', repeater, wireless))
+                         struct.pack('BB', repeater, wireless))
 
     @pm
     def get_remote_id(self):
@@ -413,10 +413,8 @@ class TMV71:
     def read_block(self, address, size):
         '''Read data from the radio'''
 
-        block = address // 256
-        offset = address-(block * 256)
-        LOG.debug('read block %d, offset %d, size %d', block, offset, size)
-        self.write_bytes(bytes([ord('R'), block, offset, size]))
+        LOG.debug('read address %d, size %d', address, size)
+        self.write_bytes(struct.pack('>BHB', ord('R'), address, size))
         self.read_bytes(4)
         data = self.read_bytes(size if size else 256)
         self.write_bytes(bytes([6]))
@@ -427,15 +425,15 @@ class TMV71:
     def write_block(self, address, data):
         '''Write data to the radio'''
 
-        block = address // 256
-        offset = address-(block * 256)
         size = len(data)
-        LOG.debug('write block %d, offset %d, size %d',
-                  block, offset, size)
+        if size > 256:
+            raise ValueError('write_block cannot write more than 256 bytes')
+
+        LOG.debug('write address %d, size %d', address, size)
         if size == 256:
             size = 0
 
-        self.write_bytes(bytes([ord('W'), block, offset, size]))
+        self.write_bytes(struct.pack('>BHB', ord('W'), address, size))
         self.write_bytes(bytes(data))
         self.check_ack()
 

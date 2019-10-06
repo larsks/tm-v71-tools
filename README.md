@@ -382,12 +382,10 @@ Usage: tmv71 memory read-block [OPTIONS] ADDRESS [SIZE]
   This command will by default output the binary data to stdout. Use the
   '-o' option to write to a file instead.
 
-  You can read a range of blocks by specifying the start and end (inclusive)
-  of the range separated by a colon.  E.g., to read blocks 0 through 20, you
-  could use `tmv71 memory read-block 0:20`.
-
-  Nothing stops you from providing an offset and size when specifying
-  multiple blocks, but it probably doesn't make sense.
+  You can read a range of addresses by specifying the start and end
+  (inclusive) of the range separated by a colon.  E.g., to read addresses
+  0x1700 through 0x557f, you could use `tmv71 memory read-block
+  0x1700:0x557f`.
 
 Options:
   -o, --output FILENAME
