@@ -607,7 +607,7 @@ def write_block(ctx, input, hexdata, address, length):
     '-i' option to read data from a file instead.'''
 
     if hexdata:
-        data = binascii.unhexlify(hexdata)
+        data = binascii.unhexlify(hexdata.replace(' ', ''))
     elif input:
         with input:
             data = input.read()
