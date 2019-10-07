@@ -26,26 +26,26 @@ You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass th
 
 <!-- start command list -->
 - [band-mode](#band-mode)
-- [channel](#channel)
 - [control-band](#control-band)
 - [dual-band](#dual-band)
-- [entry](#entry)
-- [firmware](#firmware)
-- [frequency-band](#frequency-band)
-- [id](#id)
 - [poweron-message](#poweron-message)
 - [port-speed](#port-speed)
 - [ptt](#ptt)
 - [set](#set)
-- [tune](#tune)
 - [txpower](#txpower)
-- [type](#type)
-- [export-channels](#export-channels)
-- [import-channels](#import-channels)
-- [memory read](#memory-read)
-- [memory write](#memory-write)
+- [channel entry](#channel-entry)
+- [channel export](#channel-export)
+- [channel import](#channel-import)
+- [channel tune](#channel-tune)
+- [info firmware](#info-firmware)
+- [info id](#info-id)
+- [info type](#info-type)
+- [memory dump](#memory-dump)
+- [memory restore](#memory-restore)
 - [memory read-block](#memory-read-block)
 - [memory write-block](#memory-write-block)
+- [vfo band](#vfo-band)
+- [vfo tune](#vfo-tune)
 - [raw](#raw)
 <!-- end command list -->
 
@@ -63,17 +63,6 @@ Options:
   --call
   --wx, --weather
   --help           Show this message and exit.
-```
-
-### channel
-
-```
-Usage: tmv71 channel [OPTIONS] [0|A|1|B] [CHANNEL]
-
-  Get or set the memory channel for the selected band.
-
-Options:
-  --help  Show this message and exit.
 ```
 
 ### control-band
@@ -101,71 +90,6 @@ Options:
   -1, --single
   -2, --dual
   --help        Show this message and exit.
-```
-
-### entry
-
-```
-Usage: tmv71 entry [OPTIONS] CHANNEL
-
-  View or edit memory channels.
-
-Options:
-  --channel INTEGER
-  --rx-freq FLOAT
-  --step [5|6.25|28.33|10|12.5|15|20|25|30|50|100]
-  --shift [SIMPLEX|UP|DOWN|SPLIT]
-  --reverse / --no-reverse
-  --tone-status / --no-tone-status
-  --ctcss-status / --no-ctcss-status
-  --dcs-status / --no-dcs-status
-  --tone-freq [67|69.3|71.9|74.4|77|79.7|82.5|85.4|88.5|91.5|94.8|97.4|100|103.5|107.2|110.9|114.8|118.8|123|127.3|131.8|136.5|141.3|146.2|151.4|156.7|162.2|167.9|173.8|179.9|186.2|192.8|203.5|240.7|210.7|218.1|225.7|229.1|233.6|241.8|250.3|254.1]
-  --ctcss-freq [67|69.3|71.9|74.4|77|79.7|82.5|85.4|88.5|91.5|94.8|97.4|100|103.5|107.2|110.9|114.8|118.8|123|127.3|131.8|136.5|141.3|146.2|151.4|156.7|162.2|167.9|173.8|179.9|186.2|192.8|203.5|240.7|210.7|218.1|225.7|229.1|233.6|241.8|250.3|254.1]
-  --dcs-freq [23|25|26|31|32|36|43|47|51|53|54|65|71|72|73|74|114|115|116|122|125|131|132|134|143|145|152|155|156|162|165|172|174|205|212|223|225|226|243|244|245|246|251|252|255|261|263|265|266|271|274|306|311|315|325|331|332|343|346|351|356|364|365|371|411|412|413|423|431|432|445|446|452|454|455|462|464|465|466|503|506|516|523|565|532|546|565|606|612|624|627|631|632|654|662|664|703|712|723|731|732|734|743|754]
-  --offset FLOAT
-  --mode [FM|AM|NFM]
-  --tx-freq FLOAT
-  --tx-step [5|6.25|28.33|10|12.5|15|20|25|30|50|100]
-  --lockout / --no-lockout
-  -n, --name TEXT
-  --help                          Show this message and exit.
-```
-
-### firmware
-
-```
-Usage: tmv71 firmware [OPTIONS]
-
-  Return information about the radio firmware.
-
-Options:
-  --help  Show this message and exit.
-```
-
-### frequency-band
-
-```
-Usage: tmv71 frequency-band [OPTIONS] [0|A|1|B] [[118|144|220|300|430|1200]]
-
-  Get or set the frequency band for the selected radio band.
-
-  Frequency bands are named using the names from "SELECTING A FREQUENCY
-  BAND" in the TM-V71 manual. Note that band A and band B support a
-  different subset of the available frequencies.
-
-Options:
-  --help  Show this message and exit.
-```
-
-### id
-
-```
-Usage: tmv71 id [OPTIONS]
-
-  Return the radio model.
-
-Options:
-  --help  Show this message and exit.
 ```
 
 ### poweron-message
@@ -262,10 +186,232 @@ Options:
   --help                          Show this message and exit.
 ```
 
-### tune
+### txpower
 
 ```
-Usage: tmv71 tune [OPTIONS] [A|B]
+Usage: tmv71 txpower [OPTIONS] [0|A|1|B]
+
+  Set tx power for the selected band.
+
+Options:
+  --low
+  --medium, --med
+  --high
+  --help           Show this message and exit.
+```
+
+### channel entry
+
+```
+Usage: tmv71 channel entry [OPTIONS] CHANNEL
+
+  View or edit memory channels.
+
+Options:
+  --channel INTEGER
+  --rx-freq FLOAT
+  --step [5|6.25|28.33|10|12.5|15|20|25|30|50|100]
+  --shift [SIMPLEX|UP|DOWN|SPLIT]
+  --reverse / --no-reverse
+  --tone-status / --no-tone-status
+  --ctcss-status / --no-ctcss-status
+  --dcs-status / --no-dcs-status
+  --tone-freq [67|69.3|71.9|74.4|77|79.7|82.5|85.4|88.5|91.5|94.8|97.4|100|103.5|107.2|110.9|114.8|118.8|123|127.3|131.8|136.5|141.3|146.2|151.4|156.7|162.2|167.9|173.8|179.9|186.2|192.8|203.5|240.7|210.7|218.1|225.7|229.1|233.6|241.8|250.3|254.1]
+  --ctcss-freq [67|69.3|71.9|74.4|77|79.7|82.5|85.4|88.5|91.5|94.8|97.4|100|103.5|107.2|110.9|114.8|118.8|123|127.3|131.8|136.5|141.3|146.2|151.4|156.7|162.2|167.9|173.8|179.9|186.2|192.8|203.5|240.7|210.7|218.1|225.7|229.1|233.6|241.8|250.3|254.1]
+  --dcs-freq [23|25|26|31|32|36|43|47|51|53|54|65|71|72|73|74|114|115|116|122|125|131|132|134|143|145|152|155|156|162|165|172|174|205|212|223|225|226|243|244|245|246|251|252|255|261|263|265|266|271|274|306|311|315|325|331|332|343|346|351|356|364|365|371|411|412|413|423|431|432|445|446|452|454|455|462|464|465|466|503|506|516|523|565|532|546|565|606|612|624|627|631|632|654|662|664|703|712|723|731|732|734|743|754]
+  --offset FLOAT
+  --mode [FM|AM|NFM]
+  --tx-freq FLOAT
+  --tx-step [5|6.25|28.33|10|12.5|15|20|25|30|50|100]
+  --lockout / --no-lockout
+  -n, --name TEXT
+  --help                          Show this message and exit.
+```
+
+### channel export
+
+```
+Usage: tmv71 channel export [OPTIONS]
+
+  Export channels to a CSJ document.
+
+  A CSJ document is like a CSV document, but each field is valid JSON.
+
+Options:
+  -o, --output FILENAME
+  -c, --channels TEXT
+  --help                 Show this message and exit.
+```
+
+### channel import
+
+```
+Usage: tmv71 channel import [OPTIONS]
+
+  Import channels from a CSJ document.
+
+  A CSJ document is like a CSV document, but each field is valid JSON.
+
+  Use --sync to delete channels on the radio that do not exist in the input
+  document.
+
+Options:
+  -i, --input FILENAME
+  -s, --sync
+  -c, --channels TEXT
+  --help                Show this message and exit.
+```
+
+### channel tune
+
+```
+Usage: tmv71 channel tune [OPTIONS] [0|A|1|B] [CHANNEL]
+
+  Get or set the memory channel for the selected band.
+
+Options:
+  --help  Show this message and exit.
+```
+
+### info firmware
+
+```
+Usage: tmv71 info firmware [OPTIONS]
+
+  Return information about the radio firmware.
+
+Options:
+  --help  Show this message and exit.
+```
+
+### info id
+
+```
+Usage: tmv71 info id [OPTIONS]
+
+  Return the radio model.
+
+Options:
+  --help  Show this message and exit.
+```
+
+### info type
+
+```
+Usage: tmv71 info type [OPTIONS]
+
+  Return the radio type.
+
+Options:
+  --help  Show this message and exit.
+```
+
+### memory dump
+
+```
+Usage: tmv71 memory dump [OPTIONS]
+
+  Read entire radio memory and write it to a file.
+
+Options:
+  -o, --output FILENAME
+  --help                 Show this message and exit.
+```
+
+### memory restore
+
+```
+Usage: tmv71 memory restore [OPTIONS]
+
+  Read memory dump from a file and write it to the radio.
+
+Options:
+  -i, --input FILENAME
+  --help                Show this message and exit.
+```
+
+### memory read-block
+
+```
+Usage: tmv71 memory read-block [OPTIONS] ADDRESS
+
+  Read one or more memory blocks from the radio.
+
+  This command will by default output the binary data to stdout. Use the
+  '-o' option to write to a file instead. Use the '--hexdump' option to
+  output the data as a formatted hexdump instead.
+
+  You can read a range of addresses by specifying the start and end
+  (inclusive) of the range separated by a colon.  E.g., to read addresses
+  0x1700 through 0x557f, you could use `tmv71 memory read-block
+  0x1700:0x557f`.
+
+  Examples:
+
+  1. Read 16 bytes from address 0x1700, version 1:
+
+     tmv71 memory read-block 0x1700 -l 16 -h
+
+  2. Read 16 bytes from address 0x1700, version 2:
+
+     tmv71 memory read-block 0x1700:0x1710 -h
+
+Options:
+  -o, --output FILENAME
+  -h, --hexdump
+  -l, --length FLEXINT
+  --help                 Show this message and exit.
+```
+
+### memory write-block
+
+```
+Usage: tmv71 memory write-block [OPTIONS] ADDRESS
+
+  Write data to radio memory.
+
+  This command will by default read data from stdin. Use the --input (-i)
+  option to read data from a file instead, or --hexdata (-d) to provide
+  hexadecimal data on the command line.
+
+  Examples:
+
+  1. Write four bytes to address 0x1700
+
+     tmv71 memory write-block 0x1700 -d 'F0 15 AB 08'
+
+  2. Open 'backup.dat', seek to position 0x1700, read 16 bytes, and    write
+  them to address 0x1700:
+
+     tmv71 memory write-block 0x1700 -i backup.dat -s 0x1700 -l 16
+
+Options:
+  -i, --input FILENAME
+  -d, --hexdata TEXT
+  -s, --seek FLEXINT
+  -l, --length FLEXINT
+  --help                Show this message and exit.
+```
+
+### vfo band
+
+```
+Usage: tmv71 vfo band [OPTIONS] [0|A|1|B] [[118|144|220|300|430|1200]]
+
+  Get or set the frequency band for the selected radio band.
+
+  Frequency bands are named using the names from "SELECTING A FREQUENCY
+  BAND" in the TM-V71 manual. Note that band A and band B support a
+  different subset of the available frequencies.
+
+Options:
+  --help  Show this message and exit.
+```
+
+### vfo tune
+
+```
+Usage: tmv71 vfo tune [OPTIONS] [A|B]
 
   Get or set VFO frequency and other settings.
 
@@ -287,126 +433,6 @@ Options:
   --offset FLOAT
   --mode [FM|AM|NFM]
   --help                          Show this message and exit.
-```
-
-### txpower
-
-```
-Usage: tmv71 txpower [OPTIONS] [0|A|1|B]
-
-  Set tx power for the selected band.
-
-Options:
-  --low
-  --medium, --med
-  --high
-  --help           Show this message and exit.
-```
-
-### type
-
-```
-Usage: tmv71 type [OPTIONS]
-
-  Return the radio type.
-
-Options:
-  --help  Show this message and exit.
-```
-
-### export-channels
-
-```
-Usage: tmv71 export-channels [OPTIONS]
-
-  Export channels to a CSJ document.
-
-  A CSJ document is like a CSV document, but each field is valid JSON.
-
-Options:
-  -o, --output FILENAME
-  -c, --channels TEXT
-  --help                 Show this message and exit.
-```
-
-### import-channels
-
-```
-Usage: tmv71 import-channels [OPTIONS]
-
-  Import channels from a CSJ document.
-
-  A CSJ document is like a CSV document, but each field is valid JSON.
-
-  Use --sync to delete channels on the radio that do not exist in the input
-  document.
-
-Options:
-  -i, --input FILENAME
-  -s, --sync
-  -c, --channels TEXT
-  --help                Show this message and exit.
-```
-
-### memory read
-
-```
-Usage: tmv71 memory read [OPTIONS]
-
-  Read radio memory and write it to a file.
-
-Options:
-  -o, --output FILENAME
-  --help                 Show this message and exit.
-```
-
-### memory write
-
-```
-Usage: tmv71 memory write [OPTIONS]
-
-  Read memory dump from a file and write it to the radio.
-
-Options:
-  -i, --input FILENAME
-  --help                Show this message and exit.
-```
-
-### memory read-block
-
-```
-Usage: tmv71 memory read-block [OPTIONS] ADDRESS [SIZE]
-
-  Read one or more memory blocks from the radio.
-
-  This command will by default output the binary data to stdout. Use the
-  '-o' option to write to a file instead.
-
-  You can read a range of addresses by specifying the start and end
-  (inclusive) of the range separated by a colon.  E.g., to read addresses
-  0x1700 through 0x557f, you could use `tmv71 memory read-block
-  0x1700:0x557f`.
-
-Options:
-  -o, --output FILENAME
-  -h, --hexdump
-  --help                 Show this message and exit.
-```
-
-### memory write-block
-
-```
-Usage: tmv71 memory write-block [OPTIONS] ADDRESS [LENGTH]
-
-  Write data to radio memory.
-
-  This command will by default read data from stdin. Use the '-i' option to
-  read data from a file instead.
-
-Options:
-  -i, --input FILENAME
-  -d, --hexdata TEXT
-  --help                Show this message and exit.
 ```
 
 ### raw
@@ -433,37 +459,43 @@ tmv71 --port /dev/ttyS0 --speed 9600 id
 ### Export channels to a CSV
 
 ```
-tmv71 export-channels -o channels.csv
+tmv71 channel export -o channels.csv
 ```
 
 ### Import channels from a CSV
 
 ```
-tmv71 import-channels -i channels.csv
+tmv71 channel import -i channels.csv
 ```
 
 ### Export only channels 1-10
 
 ```
-tmv71 export-channels -o channels.csv -c 1:10
+tmv71 channel export -o channels.csv -c 1:10
 ```
 
 ### Back up your radio
 
 ```
-tmv71 memory read -o backup.dat
+tmv71 memory dump -o backup.dat
 ```
 
 ### Restore from backup
 
 ```
-tmv71 memory write -i backup.dat
+tmv71 memory restore -i backup.dat
 ```
 
-### Read block 0 from memory
+### Read from memory and write binary data to a file
 
 ```
 tmv71 memory read-block -o data.bin 0
+```
+
+### Read from memory and display a hexdump
+
+```
+tmv71 memory read-block --hexdump 0
 ```
 
 ### Set port speed using write-block

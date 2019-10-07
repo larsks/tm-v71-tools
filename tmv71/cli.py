@@ -44,35 +44,8 @@ def raw(ctx, command, args):
     print(*res)
 
 
-@main.command('id')
-@click.pass_context
-def get_id(ctx):
-    '''Return the radio model.'''
-
-    res = ctx.obj.radio_id()
-    print(res[0])
-
-
 def fmt_dict(d):
     return '\n'.join('{}={}'.format(k, v) for k, v in d.items())
-
-
-@main.command('type')
-@click.pass_context
-def radio_type(ctx):
-    '''Return the radio type.'''
-
-    res = ctx.obj.radio_type()
-    print(fmt_dict(res))
-
-
-@main.command()
-@click.pass_context
-def firmware(ctx):
-    '''Return information about the radio firmware.'''
-
-    res = ctx.obj.radio_firmware()
-    print(*res)
 
 
 @main.command()
@@ -115,22 +88,6 @@ def normalize_band(band):
         return 1
     else:
         raise ValueError('invalid band number: {}'.format(band))
-
-
-@main.command()
-@click.argument('band', type=click.Choice(BAND_NAMES))
-@click.argument('channel', type=int, required=False)
-@click.pass_context
-def channel(ctx, band, channel):
-    '''Get or set the memory channel for the selected band.'''
-
-    band = normalize_band(band)
-    if channel is None:
-        res = ctx.obj.get_channel(band)
-    else:
-        res = ctx.obj.set_channel(band, channel)
-
-    print('{:03d}'.format(int(res[1])))
 
 
 @main.command()
@@ -215,29 +172,6 @@ def txpower(ctx, power, band):
     print(*res)
 
 
-@main.command()
-@click.argument('band', type=click.Choice(BAND_NAMES))
-@click.argument('freq_band', type=click.Choice(api.FREQUENCY_BAND),
-                required=False)
-@click.pass_context
-def frequency_band(ctx, band, freq_band):
-    '''Get or set the frequency band for the selected radio band.
-
-    Frequency bands are named using the names from "SELECTING A FREQUENCY BAND"
-    in the TM-V71 manual. Note that band A and band B support a different
-    subset of the available frequencies.'''
-
-    band = normalize_band(band)
-    with ctx.obj.programming_mode():
-        if freq_band is None:
-            freq_band = ctx.obj.get_frequency_band(band)
-            pass
-        else:
-            ctx.obj.set_frequency_band(band, freq_band)
-
-    print(freq_band)
-
-
 def apply_options_from_schema(model, **kwargs):
     options = []
 
@@ -271,63 +205,6 @@ def apply_options_from_schema(model, **kwargs):
     return _apply_options
 
 
-@main.command()
-@apply_options_from_schema(schema.FO)
-@click.argument('band', type=click.Choice(schema.BANDS))
-@click.pass_context
-def tune(ctx, band, **kwargs):
-    '''Get or set VFO frequency and other settings.
-
-    You can only tune to frequencies on the current band. Use the
-    frequency-band command to change bands.'''
-
-    res = ctx.obj.get_band_vfo(band)
-
-    set_radio = False
-    for k, v in kwargs.items():
-        if v is None:
-            continue
-
-        set_radio = True
-        res[k] = v
-
-    if set_radio:
-        LOG.info('setting vfo for band %s', band)
-        res = ctx.obj.set_band_vfo(band, res)
-
-    print(fmt_dict(res))
-
-
-@main.command()
-@apply_options_from_schema(schema.ME)
-@click.option('-n', '--name')
-@click.argument('channel', type=int)
-@click.pass_context
-def entry(ctx, channel, name, **kwargs):
-    '''View or edit memory channels.'''
-
-    res = ctx.obj.get_channel_entry(channel)
-
-    set_radio = False
-    for k, v in kwargs.items():
-        if v is None:
-            continue
-
-        set_radio = True
-        res[k] = v
-
-    if name is not None:
-        LOG.info('setting name for channel %s',  channel)
-        ctx.obj.set_channel_name(channel, name)
-
-    if set_radio:
-        LOG.info('configuring channel %s',  channel)
-        res = ctx.obj.set_channel_entry(channel, res)
-        res = ctx.obj.get_channel_entry(channel)
-
-    print(fmt_dict(res))
-
-
 def resolve_range(rspec, default=None):
     selected = default
     if rspec:
@@ -340,72 +217,6 @@ def resolve_range(rspec, default=None):
                 selected.append(int(entry))
 
     return selected
-
-
-@main.command()
-@click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
-@click.option('-c', '--channels', multiple=True)
-@click.pass_context
-def export_channels(ctx, output, channels):
-    '''Export channels to a CSJ document.
-
-    A CSJ document is like a CSV document, but each field is valid JSON.'''
-
-    selected = resolve_range(channels, range(1000))
-
-    with output:
-        output.write(','.join(list(schema.ME.declared_fields) + ['name']))
-        output.write('\n')
-        for channel in selected:
-            LOG.info('getting information for channel %d', channel)
-
-            try:
-                channel_config = ctx.obj.get_channel_entry(channel)
-                values = channel_config.schema.to_raw_tuple(channel_config)
-                values.append(ctx.obj.get_channel_name(channel))
-
-                output.write(','.join(json.dumps(x) for x in values))
-                output.write('\n')
-            except api.InvalidCommandError:
-                LOG.debug('channel %d does not exist', channel)
-                continue
-
-
-@main.command()
-@click.option('-i', '--input', type=click.File('r'), default=sys.stdin)
-@click.option('-s', '--sync', is_flag=True)
-@click.option('-c', '--channels', multiple=True)
-@click.pass_context
-def import_channels(ctx, input, sync, channels):
-    '''Import channels from a CSJ document.
-
-    A CSJ document is like a CSV document, but each field is valid JSON.
-
-    Use --sync to delete channels on the radio that do not exist
-    in the input document.'''
-    selected = resolve_range(channels, range(1000))
-
-    with input:
-        channelmap = {}
-        for line in input:
-            if line.startswith('channel'):
-                continue
-            line = line.rstrip()
-            values = [json.loads(x) for x in line.split(',')]
-            channelmap[values[0]] = values
-
-        for channel in selected:
-            if channel not in channelmap:
-                if sync:
-                    LOG.info('deleting channel %d', channel)
-                    ctx.obj.delete_channel_entry(channel)
-            else:
-                LOG.info('setting information for channel %d', channel)
-                channel_config = schema.ME.from_raw_tuple(channelmap[channel])
-                channel_name = channelmap[channel][-1]
-
-                ctx.obj.set_channel_entry(channel, channel_config)
-                ctx.obj.set_channel_name(channel, channel_name)
 
 
 @main.command()
@@ -502,12 +313,225 @@ def remote_id(ctx, remote_id):
         else:
             ctx.obj.set_remote_id(remote_id.encode('ascii'))
 
+# ----------------------------------------------------------------------
+
+
+@main.group()
+def channel():
+    '''Commands for interacting with memory channels'''
+    pass
+
+
+@channel.command('tune')
+@click.argument('band', type=click.Choice(BAND_NAMES))
+@click.argument('channel', type=int, required=False)
+@click.pass_context
+def channel_tune(ctx, band, channel):
+    '''Get or set the memory channel for the selected band.'''
+
+    band = normalize_band(band)
+    if channel is None:
+        res = ctx.obj.get_channel(band)
+    else:
+        res = ctx.obj.set_channel(band, channel)
+
+    print('{:03d}'.format(int(res[1])))
+
+
+@channel.command()
+@apply_options_from_schema(schema.ME)
+@click.option('-n', '--name')
+@click.argument('channel', type=int)
+@click.pass_context
+def entry(ctx, channel, name, **kwargs):
+    '''View or edit memory channels.'''
+
+    res = ctx.obj.get_channel_entry(channel)
+
+    set_radio = False
+    for k, v in kwargs.items():
+        if v is None:
+            continue
+
+        set_radio = True
+        res[k] = v
+
+    if name is not None:
+        LOG.info('setting name for channel %s',  channel)
+        ctx.obj.set_channel_name(channel, name)
+
+    if set_radio:
+        LOG.info('configuring channel %s',  channel)
+        res = ctx.obj.set_channel_entry(channel, res)
+        res = ctx.obj.get_channel_entry(channel)
+
+    print(fmt_dict(res))
+
+
+@channel.command('export')
+@click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
+@click.option('-c', '--channels', multiple=True)
+@click.pass_context
+def export_channels(ctx, output, channels):
+    '''Export channels to a CSJ document.
+
+    A CSJ document is like a CSV document, but each field is valid JSON.'''
+
+    selected = resolve_range(channels, range(1000))
+
+    with output:
+        output.write(','.join(list(schema.ME.declared_fields) + ['name']))
+        output.write('\n')
+        for channel in selected:
+            LOG.info('getting information for channel %d', channel)
+
+            try:
+                channel_config = ctx.obj.get_channel_entry(channel)
+                values = channel_config.schema.to_raw_tuple(channel_config)
+                values.append(ctx.obj.get_channel_name(channel))
+
+                output.write(','.join(json.dumps(x) for x in values))
+                output.write('\n')
+            except api.InvalidCommandError:
+                LOG.debug('channel %d does not exist', channel)
+                continue
+
+
+@channel.command('import')
+@click.option('-i', '--input', type=click.File('r'), default=sys.stdin)
+@click.option('-s', '--sync', is_flag=True)
+@click.option('-c', '--channels', multiple=True)
+@click.pass_context
+def import_channels(ctx, input, sync, channels):
+    '''Import channels from a CSJ document.
+
+    A CSJ document is like a CSV document, but each field is valid JSON.
+
+    Use --sync to delete channels on the radio that do not exist
+    in the input document.'''
+    selected = resolve_range(channels, range(1000))
+
+    with input:
+        channelmap = {}
+        for line in input:
+            if line.startswith('channel'):
+                continue
+            line = line.rstrip()
+            values = [json.loads(x) for x in line.split(',')]
+            channelmap[values[0]] = values
+
+        for channel in selected:
+            if channel not in channelmap:
+                if sync:
+                    LOG.info('deleting channel %d', channel)
+                    ctx.obj.delete_channel_entry(channel)
+            else:
+                LOG.info('setting information for channel %d', channel)
+                channel_config = schema.ME.from_raw_tuple(channelmap[channel])
+                channel_name = channelmap[channel][-1]
+
+                ctx.obj.set_channel_entry(channel, channel_config)
+                ctx.obj.set_channel_name(channel, channel_name)
+
+# ----------------------------------------------------------------------
+
+
+@main.group()
+def info():
+    '''Commands for getting information about the radio'''
+    pass
+
+
+@info.command('id')
+@click.pass_context
+def radio_id(ctx):
+    '''Return the radio model.'''
+
+    res = ctx.obj.radio_id()
+    print(res[0])
+
+
+@info.command('type')
+@click.pass_context
+def radio_type(ctx):
+    '''Return the radio type.'''
+
+    res = ctx.obj.radio_type()
+    print(fmt_dict(res))
+
+
+@info.command()
+@click.pass_context
+def firmware(ctx):
+    '''Return information about the radio firmware.'''
+
+    res = ctx.obj.radio_firmware()
+    print(*res)
+
+# ----------------------------------------------------------------------
+
+
+@main.group()
+def vfo():
+    '''Commands for interacting with the VFO'''
+    pass
+
+
+@vfo.command()
+@apply_options_from_schema(schema.FO)
+@click.argument('band', type=click.Choice(schema.BANDS))
+@click.pass_context
+def tune(ctx, band, **kwargs):
+    '''Get or set VFO frequency and other settings.
+
+    You can only tune to frequencies on the current band. Use the
+    frequency-band command to change bands.'''
+
+    res = ctx.obj.get_band_vfo(band)
+
+    set_radio = False
+    for k, v in kwargs.items():
+        if v is None:
+            continue
+
+        set_radio = True
+        res[k] = v
+
+    if set_radio:
+        LOG.info('setting vfo for band %s', band)
+        res = ctx.obj.set_band_vfo(band, res)
+
+    print(fmt_dict(res))
+
+
+@vfo.command('band')
+@click.argument('band', type=click.Choice(BAND_NAMES))
+@click.argument('freq_band', type=click.Choice(api.FREQUENCY_BAND),
+                required=False)
+@click.pass_context
+def frequency_band(ctx, band, freq_band):
+    '''Get or set the frequency band for the selected radio band.
+
+    Frequency bands are named using the names from "SELECTING A FREQUENCY BAND"
+    in the TM-V71 manual. Note that band A and band B support a different
+    subset of the available frequencies.'''
+
+    band = normalize_band(band)
+    with ctx.obj.programming_mode():
+        if freq_band is None:
+            freq_band = ctx.obj.get_frequency_band(band)
+            pass
+        else:
+            ctx.obj.set_frequency_band(band, freq_band)
+
+    print(freq_band)
 
 # ----------------------------------------------------------------------
 
 
 @main.group()
 def memory():
+    '''Commands for reading and modifying memory'''
     pass
 
 
