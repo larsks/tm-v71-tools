@@ -160,18 +160,6 @@ def main(ctx, port, speed, verbose, no_clear, clear_retries):
 
 
 @main.command()
-@click.argument('command')
-@click.argument('args', nargs=-1)
-@click.pass_obj
-@clear_first
-def raw(ctx, command, args):
-    '''Send a raw command to the radio and display the response.'''
-
-    res = ctx.api.send_command(command, *args)
-    print(*res)
-
-
-@main.command()
 @click.argument('message', default=None, required=False)
 @click.pass_obj
 @clear_first
@@ -822,3 +810,17 @@ def write_block(ctx, input, hexdata, seek, length, address):
 
             addr += 256
             ctx.api.write_block(address, chunk)
+
+# ----------------------------------------------------------------------
+
+
+@main.command()
+@click.argument('command')
+@click.argument('args', nargs=-1)
+@click.pass_obj
+@clear_first
+def raw(ctx, command, args):
+    '''Send a raw command to the radio and display the response.'''
+
+    res = ctx.api.send_command(command, *args)
+    print(*res)
