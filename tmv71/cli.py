@@ -100,9 +100,11 @@ def apply_options_from_schema(model, **kwargs):
 def clear_first(f):
     '''Clear the communication channel.
 
-    This decorator will use the TMV71.clear() method to attempt
-    to put the radio in a known state before running a command.'''
-
+    This decorator will use the TMV71.clear() method to attempt to put the
+    radio in a known state before running a command.  The top-level option
+    --no-clear (-K) will skip this step (or you can set TMV71_NO_CLEAR=1 in
+    your environment), and --clear-retries (-R, or TMV71_CLEAR_RETRIES)
+    controls how many times it will retry before failing with an error.'''
     @functools.wraps(f)
     def _(ctx, *args, **kwargs):
         if not ctx.no_clear:
@@ -136,8 +138,11 @@ class ApplicationContext:
 @click.option('-p', '--port', default='/dev/ttyS0')
 @click.option('-s', '--speed', default=9600)
 @click.option('-v', '--verbose', count=True)
-@click.option('-K', '--no-clear', is_flag=True)
-@click.option('-R', '--clear-retries', type=int, default=0)
+@click.option('-K', '--no-clear', is_flag=True,
+              help='Skip initial clear operation before running command')
+@click.option('-R', '--clear-retries', type=int, default=0,
+              help='Number of times to retry clear operation '
+              'before failing')
 @click.pass_context
 def main(ctx, port, speed, verbose, no_clear, clear_retries):
     try:
