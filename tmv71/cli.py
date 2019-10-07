@@ -64,7 +64,7 @@ def fmt_dict(d, format=FORMATS.KEYVALUE, column=None):
     elif format == FORMATS.JSON:
         return json.dumps(d, indent=2)
     elif format == FORMATS.TABLE:
-        return tabulate.tabulate(d.items())
+        return tabulate.tabulate(d.items(), tablefmt='grid')
 
 
 @main.command()
