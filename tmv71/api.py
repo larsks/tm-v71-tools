@@ -214,13 +214,13 @@ class TMV71:
         return self.send_command('MS', msg)
 
     def get_dual_band_mode(self):
-        return self.send_command('DL')
+        return int(self.send_command('DL')[0])
 
     def set_dual_band_mode(self):
-        return self.send_command('DL', 0)
+        return int(self.send_command('DL', 0)[0])
 
     def set_single_band_mode(self):
-        return self.send_command('DL', 1)
+        return int(self.send_command('DL', 1)[0])
 
     def get_channel(self, band):
         return self.send_command('MR', band)
@@ -230,10 +230,12 @@ class TMV71:
         return self.send_command('MR', band, channel)
 
     def get_ptt_ctrl_band(self):
-        return self.send_command('BC')
+        return [int(x)
+                for x in self.send_command('BC')]
 
     def set_ptt_ctrl_band(self, ctrl_band, ptt_band):
-        return self.send_command('BC', ctrl_band, ptt_band)
+        return [int(x)
+                for x in self.send_command('BC', ctrl_band, ptt_band)]
 
     def set_ptt(self, ptt_state):
         if ptt_state:

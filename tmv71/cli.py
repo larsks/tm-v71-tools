@@ -13,7 +13,7 @@ from tmv71 import api
 from tmv71 import schema
 
 LOG = logging.getLogger(__name__)
-BAND_NAMES = ['0', 'A', '1', 'B']
+BAND_NAMES = ['A', 'B', '0', '1']
 
 
 class FORMATS(enum.Enum):
@@ -174,26 +174,6 @@ def poweron_message(ctx, message):
     print(res[0])
 
 
-@main.command()
-@click.option('-1', '--single', 'mode', flag_value=1)
-@click.option('-2', '--dual', 'mode', flag_value=2)
-@click.pass_obj
-@clear_first
-def dual_band(ctx, mode):
-    '''Get or set dual-band mode for the control band.'''
-
-    if mode is None:
-        res = ctx.api.get_dual_band_mode()
-    elif mode == 1:
-        res = ctx.api.set_single_band_mode()
-    elif mode == 2:
-        res = ctx.api.set_dual_band_mode()
-    else:
-        raise click.ClickException('mode must be 1 or 2')
-
-    print(['dual', 'single'][int(res[0])])
-
-
 def normalize_band(band):
     '''Turns a band name into a numeric 0 or 1'''
 
@@ -203,36 +183,6 @@ def normalize_band(band):
         return 1
     else:
         raise ValueError('invalid band number: {}'.format(band))
-
-
-@main.command()
-@click.option('-c', '--control')
-@click.option('-p', '--ptt')
-@click.option('-b', '--both', '--cp')
-@click.pass_obj
-@clear_first
-def control_band(ctx, control, ptt, both):
-    '''Select control and ptt band.'''
-
-    res = ctx.api.get_ptt_ctrl_band()
-
-    if both is not None:
-        control = ptt = both
-
-    if control is None and ptt is None:
-        print(*res)
-        return
-
-    if control is not None:
-        control = normalize_band(control)
-        res[0] = control
-
-    if ptt is not None:
-        ptt = normalize_band(ptt)
-        res[1] = ptt
-
-    res = ctx.api.set_ptt_ctrl_band(*res)
-    print(*res)
 
 
 @main.command()
@@ -246,7 +196,13 @@ def ptt(ctx, ptt_state):
     ctx.api.set_ptt(ptt_state)
 
 
-@main.command()
+@main.group()
+def band():
+    '''Commands for controlling the dual bands'''
+    pass
+
+
+@band.command('mode')
 @click.option('--vfo', 'mode',
               flag_value=schema.BAND_MODE.index('VFO'))
 @click.option('--mem', '--memory', 'mode',
@@ -270,7 +226,68 @@ def band_mode(ctx, mode, band):
     print(schema.BAND_MODE[int(res[1])])
 
 
-@main.command()
+@band.command('select')
+@click.option('-1', '--single', 'mode', flag_value=1)
+@click.option('-2', '--dual', 'mode', flag_value=2)
+@click.option('-c', '--control', 'which', flag_value='control')
+@click.option('-p', '--ptt', 'which', flag_value='ptt')
+@click.argument('band', required=False)
+@formatted
+@click.pass_obj
+@clear_first
+def band_select(ctx, band, which, mode):
+    '''Select control and ptt band, and select single or dual-band mode
+
+    Use band A as control band and band B as ptt band:
+
+        tmv71 band select A --control
+        tmv71 band select B --ptt
+
+    Use band B for both control and ptt:
+
+        tmv71 band select B
+
+    Use band B in single band mode:
+
+        tmv71 band select B -1
+
+    Place radio back into dual-band mode:
+
+        tmv71 band select -2
+    '''
+
+    if which and mode:
+        raise click.ClickException('-1/-2 and -c/-p are mutually exclusive')
+
+    control_band, ptt_band = ctx.api.get_ptt_ctrl_band()
+    cur_mode = ctx.api.get_dual_band_mode()
+
+    if mode == 2:
+        cur_mode = ctx.api.set_dual_band_mode()
+    elif band is not None:
+        band = normalize_band(band)
+
+        if mode:
+            if mode == 1:
+                control_band = ptt_band = band
+                cur_mode = ctx.api.set_single_band_mode()
+        else:
+            if which == 'control':
+                control_band = band
+            elif which == 'ptt':
+                ptt_band = band
+            else:
+                control_band = ptt_band = band
+
+        control_band, ptt_band = ctx.api.set_ptt_ctrl_band(
+            control_band, ptt_band)
+
+    return dict(control=BAND_NAMES[control_band],
+                ptt=BAND_NAMES[ptt_band],
+                mode=['dual', 'single'][cur_mode])
+
+
+@band.command()
 @click.option('--low', 'power', flag_value=schema.TX_POWER.index('LOW'))
 @click.option('--medium', '--med', 'power',
               flag_value=schema.TX_POWER.index('MED'))
