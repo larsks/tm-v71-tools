@@ -279,8 +279,9 @@ def port_speed(ctx, speed):
 @click.option('--reset', is_flag=True,
               help='Some options (e.g. brightness-level) require '
               'a reset before they will take effect')
+@apply_format_options
 @click.pass_context
-def radio_set(ctx, reset, **kwargs):
+def radio_set(ctx, reset, format, column, **kwargs):
     '''Get or set various configuration options.'''
     res = ctx.obj.get_radio_config()
 
@@ -300,7 +301,7 @@ def radio_set(ctx, reset, **kwargs):
         with ctx.obj.programming_mode():
             pass
 
-    print(fmt_dict(res))
+    print(fmt_dict(res, format=format, column=column))
 
 
 @main.command()
@@ -372,10 +373,10 @@ def channel_tune(ctx, band, channel):
 
 
 @channel.command()
-@apply_format_options
 @apply_options_from_schema(schema.ME)
 @click.option('-n', '--name')
 @click.argument('channel', type=int)
+@apply_format_options
 @click.pass_context
 def entry(ctx, channel, name, format, column, **kwargs):
     '''View or edit memory channels.'''
