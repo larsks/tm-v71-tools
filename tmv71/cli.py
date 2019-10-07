@@ -1,15 +1,23 @@
 import click
+import enum
 import hexdump
 import json
 import logging
 import os
 import sys
+import tabulate
 
 from tmv71 import api
 from tmv71 import schema
 
 LOG = logging.getLogger(__name__)
 BAND_NAMES = ['0', 'A', '1', 'B']
+
+
+class FORMATS(enum.Enum):
+    KEYVALUE = 0
+    JSON = 1
+    TABLE = 2
 
 
 @click.group(context_settings=dict(auto_envvar_prefix='TMV71'))
@@ -44,8 +52,19 @@ def raw(ctx, command, args):
     print(*res)
 
 
-def fmt_dict(d):
-    return '\n'.join('{}={}'.format(k, v) for k, v in d.items())
+def fmt_dict(d, format=FORMATS.KEYVALUE, column=None):
+    if isinstance(format, str):
+        format = getattr(FORMATS, format.upper())
+
+    if column:
+        d = {k: d[k] for k in column}
+
+    if format == FORMATS.KEYVALUE:
+        return '\n'.join('{}={}'.format(k, v) for k, v in d.items())
+    elif format == FORMATS.JSON:
+        return json.dumps(d, indent=2)
+    elif format == FORMATS.TABLE:
+        return tabulate.tabulate(d.items())
 
 
 @main.command()
@@ -170,6 +189,20 @@ def txpower(ctx, power, band):
         res = ctx.obj.set_tx_power(band, int(power))
 
     print(*res)
+
+
+def apply_format_options(f):
+    options = [
+        click.option('--format', '-f',
+                     type=click.Choice(['keyvalue', 'json', 'csv', 'table']),
+                     default='keyvalue'),
+        click.option('--column', '-c', multiple=True)
+    ]
+
+    for option in options:
+        f = option(f)
+
+    return f
 
 
 def apply_options_from_schema(model, **kwargs):
@@ -339,11 +372,12 @@ def channel_tune(ctx, band, channel):
 
 
 @channel.command()
+@apply_format_options
 @apply_options_from_schema(schema.ME)
 @click.option('-n', '--name')
 @click.argument('channel', type=int)
 @click.pass_context
-def entry(ctx, channel, name, **kwargs):
+def entry(ctx, channel, name, format, column, **kwargs):
     '''View or edit memory channels.'''
 
     res = ctx.obj.get_channel_entry(channel)
@@ -365,7 +399,7 @@ def entry(ctx, channel, name, **kwargs):
         res = ctx.obj.set_channel_entry(channel, res)
         res = ctx.obj.get_channel_entry(channel)
 
-    print(fmt_dict(res))
+    print(fmt_dict(res, format=format, column=column))
 
 
 @channel.command('export')
