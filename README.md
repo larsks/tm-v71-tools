@@ -25,14 +25,13 @@ You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass th
 ## Available commands
 
 <!-- start command list -->
-- [band-mode](#band-mode)
-- [control-band](#control-band)
-- [dual-band](#dual-band)
 - [poweron-message](#poweron-message)
 - [port-speed](#port-speed)
 - [ptt](#ptt)
 - [set](#set)
-- [txpower](#txpower)
+- [band mode](#band-mode)
+- [band select](#band-select)
+- [band txpower](#band-select)
 - [channel entry](#channel-entry)
 - [channel export](#channel-export)
 - [channel import](#channel-import)
@@ -50,48 +49,6 @@ You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass th
 <!-- end command list -->
 
 <!-- start command docs -->
-### band-mode
-
-```
-Usage: tmv71 band-mode [OPTIONS] [0|A|1|B]
-
-  Set selected band to VFO, MEM, call channel, or weather.
-
-Options:
-  --vfo
-  --mem, --memory
-  --call
-  --wx, --weather
-  --help           Show this message and exit.
-```
-
-### control-band
-
-```
-Usage: tmv71 control-band [OPTIONS]
-
-  Select control and ptt band.
-
-Options:
-  -c, --control TEXT
-  -p, --ptt TEXT
-  -b, --both, --cp TEXT
-  --help                 Show this message and exit.
-```
-
-### dual-band
-
-```
-Usage: tmv71 dual-band [OPTIONS]
-
-  Get or set dual-band mode for the control band.
-
-Options:
-  -1, --single
-  -2, --dual
-  --help        Show this message and exit.
-```
-
 ### poweron-message
 
 ```
@@ -190,10 +147,60 @@ Options:
   --help                          Show this message and exit.
 ```
 
-### txpower
+### band mode
 
 ```
-Usage: tmv71 txpower [OPTIONS] [0|A|1|B]
+Usage: tmv71 band mode [OPTIONS] [A|B|0|1]
+
+  Set selected band to VFO, MEM, call channel, or weather.
+
+Options:
+  --vfo
+  --mem, --memory
+  --call
+  --wx, --weather
+  --help           Show this message and exit.
+```
+
+### band select
+
+```
+Usage: tmv71 band select [OPTIONS] [BAND]
+
+  Select control and ptt band, and select single or dual-band mode
+
+  Use band A as control band and band B as ptt band:
+
+      tmv71 band select A --control     tmv71 band select B --ptt
+
+  Use band B for both control and ptt:
+
+      tmv71 band select B
+
+  Use band B in single band mode:
+
+      tmv71 band select B -1
+
+  Place radio back into dual-band mode:
+
+      tmv71 band select -2
+
+Options:
+  -1, --single
+  -2, --dual
+  -c, --control
+  -p, --ptt
+  -F, --format [shell|table|json]
+  -T, --table-format [fancy_grid|github|grid|html|jira|latex|latex_booktabs|latex_raw|mediawiki|moinmoin|orgtbl|pipe|plain|presto|psql|rst|simple|textile|tsv|youtrack]
+  -K, --key TEXT                  Limit output to the specified key (may be
+                                  specified multiple times)
+  --help                          Show this message and exit.
+```
+
+### band txpower
+
+```
+Usage: tmv71 band txpower [OPTIONS] [A|B|0|1]
 
   Set tx power for the selected band.
 
@@ -273,7 +280,7 @@ Options:
 ### channel tune
 
 ```
-Usage: tmv71 channel tune [OPTIONS] [0|A|1|B] [CHANNEL]
+Usage: tmv71 channel tune [OPTIONS] [A|B|0|1] [CHANNEL]
 
   Get or set the memory channel for the selected band.
 
@@ -408,7 +415,7 @@ Options:
 ### vfo band
 
 ```
-Usage: tmv71 vfo band [OPTIONS] [0|A|1|B] [[118|144|220|300|430|1200]]
+Usage: tmv71 vfo band [OPTIONS] [A|B|0|1] [[118|144|220|300|430|1200]]
 
   Get or set the frequency band for the selected radio band.
 
