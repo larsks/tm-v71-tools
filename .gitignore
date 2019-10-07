@@ -1,0 +1,6 @@
+.coverage
+.coverage/
+dist/
+htmlcov/
+*.py[co]
+.tox/
