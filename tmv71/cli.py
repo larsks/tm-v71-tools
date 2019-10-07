@@ -1,5 +1,6 @@
 import click
 import enum
+import functools
 import hexdump
 import json
 import logging
@@ -15,9 +16,32 @@ BAND_NAMES = ['0', 'A', '1', 'B']
 
 
 class FORMATS(enum.Enum):
-    KEYVALUE = 0
-    JSON = 1
-    TABLE = 2
+
+
+def clear_first(f):
+    '''Clear the communication channel.
+
+    This decorator will use the TMV71.clear() method to attempt
+    to put the radio in a known state before running a command.'''
+
+    @functools.wraps(f)
+    def _(ctx, *args, **kwargs):
+        if not ctx.no_clear:
+            LOG.info('clearing communication channel')
+            for i in range(ctx.clear_retries + 1):
+                try:
+                    ctx.api.clear()
+                except api.CommunicationError:
+                    LOG.info('no response from the radio (try %d)', i)
+                    ctx.api.reopen()
+                else:
+                    break
+            else:
+                raise click.ClickException(
+                    'failed to communicate with the radio')
+        return f(ctx, *args, **kwargs)
+
+    return _
 
 
 @click.group(context_settings=dict(auto_envvar_prefix='TMV71'))

@@ -154,6 +154,11 @@ class TMV71:
 
     # ----------------------------------------------------------------------
 
+    def reopen(self):
+        '''Close and re-open the serial port'''
+        self._port.close()
+        self._port.open()
+
     def clear(self):
         '''Clear the communication channel.
 
