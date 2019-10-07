@@ -447,7 +447,7 @@ class TMV71:
             raise UnexpectedResponseError()
 
     @pm
-    def read_memory(self, fd):
+    def memory_dump(self, fd):
         '''Read data from the radio and write it to a file-like object.'''
 
         for block in range(0x7F):
@@ -456,13 +456,36 @@ class TMV71:
             data = self.read_block(addr, 0)
             fd.write(data)
 
-    @pm
-    def write_memory(self, fd):
-        '''Read data from a file-like object and write it to the radio.'''
+    memory_magic = struct.pack('BBBB', 0x0, 0x4b, 0x01, 0xff)
 
+    @pm
+    def memory_restore(self, fd, force=False):
+        '''Read data from a file-like object and write it to the radio.
+
+        This command is similar to the behavior of the MCP-2A "Write
+        data to the receiver" command"; in particular, it initially
+        writes 0xFF to address 0 before proceeding to load the data
+        from the input file descriptor to the radio. This will cause
+        the radio to reset to defaults if the write operation is
+        interrupted.'''
+
+        # Check that radio state seems sane
         data = self.read_block(0, 4)
-        if data != b'\x00\x4b\x01\xff':
-            LOG.warning('unexpected content in block 0 (continuing)')
+        if data != self.memory_magic:
+            if force:
+                LOG.warning('Radio does not contain expected '
+                            'data (continuing)')
+            else:
+                raise ValueError('Radio does not contain expected data')
+
+        # Check that input data seems sane
+        data = fd.read(4)
+        if data != self.memory_magic:
+            if force:
+                LOG.warning('Input does not contain expected '
+                            'data (continuing)')
+            else:
+                raise ValueError('Input does not contain expected data')
 
         self.write_block(0, b'\xff')
 
@@ -475,6 +498,6 @@ class TMV71:
             data = fd.read(256)
             self.write_block(addr, data)
 
-        self.write_block(0, b'\x00\x4b\x01\xff')
+        self.write_block(0, self.memory_magic)
 
     # ----------------------------------------------------------------------

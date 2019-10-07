@@ -1,4 +1,3 @@
-import binascii
 import click
 import hexdump
 import json
@@ -516,14 +515,14 @@ def memory():
 @click.option('-o', '--output', type=click.File('wb'),
               default=sys.stdout.buffer)
 @click.pass_context
-def read(ctx, output):
-    '''Read radio memory and write it to a file.'''
+def dump(ctx, output):
+    '''Read entire radio memory and write it to a file.'''
 
     LOG.info('read from radio to file "%s"', output.name)
     try:
         with output, ctx.obj.programming_mode():
             try:
-                ctx.obj.read_memory(output)
+                ctx.obj.memory_dump(output)
             except api.CommunicationError as err:
                 raise click.ClickException(str(err))
     except Exception:
@@ -536,55 +535,80 @@ def read(ctx, output):
 @memory.command()
 @click.option('-i', '--input', type=click.File('rb'), default=sys.stdin)
 @click.pass_context
-def write(ctx, input):
+def restore(ctx, input):
     '''Read memory dump from a file and write it to the radio.'''
 
     LOG.info('write to radio from file "%s"', input.name)
     with input, ctx.obj.programming_mode():
         try:
-            ctx.obj.write_memory(input)
+            ctx.obj.memory_restore(input)
         except api.CommunicationError as err:
             raise click.ClickException(str(err))
 
 
 def flexint(v):
-    return int(v, 0)
+    '''Convert strings to integer values.
+
+    The block read/write commands accept integer values as either
+    decimal or hexadecimal. This function converts either format into
+    integer values.'''
+
+    if isinstance(v, int):
+        return v
+    else:
+        return int(v, 0)
 
 
 @memory.command()
 @click.option('-o', '--output', type=click.File('wb'),
               default=sys.stdout.buffer)
 @click.option('-h', '--hexdump', '_hexdump', is_flag=True)
+@click.option('-l', '--length', type=flexint, default=0)
 @click.argument('address')
-@click.argument('size', type=flexint, default='0', required=False)
 @click.pass_context
-def read_block(ctx, output, _hexdump, address, size):
+def read_block(ctx, output, _hexdump, address, length):
     '''Read one or more memory blocks from the radio.
 
     This command will by default output the binary data to stdout. Use the
-    '-o' option to write to a file instead.
+    '-o' option to write to a file instead. Use the '--hexdump' option
+    to output the data as a formatted hexdump instead.
 
     You can read a range of addresses by specifying the start and end
     (inclusive) of the range separated by a colon.  E.g., to read addresses
     0x1700 through 0x557f, you could use `tmv71 memory read-block
-    0x1700:0x557f`.'''
+    0x1700:0x557f`.
 
-    if ':' in address and size != 0:
-        raise ValueError('you cannot specify a size '
+    Examples:
+
+    1. Read 16 bytes from address 0x1700, version 1:
+
+       tmv71 memory read-block 0x1700 -l 16 -h
+
+    2. Read 16 bytes from address 0x1700, version 2:
+
+       tmv71 memory read-block 0x1700:0x1710 -h
+    '''
+
+    if ':' in address and length != 0:
+        raise ValueError('you cannot specify a length '
                          'when using an address range')
     elif ':' in address:
         addr_start, addr_end = (flexint(x) for x in address.split(':'))
     else:
         addr_start = flexint(address)
-        addr_end = addr_start + 256
-
-    addr_range = range(addr_start, addr_end, 256)
+        addr_end = addr_start + (length if length else 256)
 
     with output, ctx.obj.programming_mode():
-        for addr in addr_range:
-            LOG.info('reading %d bytes of memory from %x',
-                     256 if size == 0 else size, addr)
-            data = ctx.obj.read_block(addr, size)
+        addr = addr_start
+        while addr < addr_end:
+            chunklen = min(256, addr_end - addr)
+
+            # The special value '0' means '256 bytes'
+            chunklen = 0 if chunklen == 256 else chunklen
+
+            LOG.info('reading %d bytes of memory from 0x%04X',
+                     256 if chunklen == 0 else chunklen, addr)
+            data = ctx.obj.read_block(addr, chunklen)
 
             if _hexdump:
                 output.write(
@@ -593,35 +617,65 @@ def read_block(ctx, output, _hexdump, address, size):
             else:
                 output.write(data)
 
+            addr = min(addr_end, addr + 256)
+
 
 @memory.command()
 @click.option('-i', '--input', type=click.File('rb'))
 @click.option('-d', '--hexdata')
+@click.option('-s', '--seek', type=flexint, default=0)
+@click.option('-l', '--length', type=flexint)
 @click.argument('address', type=flexint)
-@click.argument('length', type=flexint, default='0', required=False)
 @click.pass_context
-def write_block(ctx, input, hexdata, address, length):
+def write_block(ctx, input, hexdata, seek, length, address):
     '''Write data to radio memory.
 
-    This command will by default read data from stdin. Use the
-    '-i' option to read data from a file instead.'''
+    This command will by default read data from stdin. Use the --input (-i)
+    option to read data from a file instead, or --hexdata (-d) to provide
+    hexadecimal data on the command line.
 
-    if hexdata:
-        data = binascii.unhexlify(hexdata.replace(' ', ''))
-    elif input:
+    Examples:
+
+    1. Write four bytes to address 0x1700
+
+       tmv71 memory write-block 0x1700 -d 'F0 15 AB 08'
+
+    2. Open 'backup.dat', seek to position 0x1700, read 16 bytes, and
+       write them to address 0x1700:
+
+       tmv71 memory write-block 0x1700 -i backup.dat -s 0x1700 -l 16
+    '''
+
+    LOG.debug('seek %d length %d address %d', seek, length, address)
+
+    if input:
+        LOG.debug('reading data from %s', input.name)
         with input:
-            data = input.read()
+            input.seek(seek)
+            data = input.read(length)
+    elif hexdata:
+        LOG.debug('reading data from hexdata option')
+        data = hexdump.dehex(hexdata)
+        if seek:
+            data = data[seek:]
+        if length:
+            data = data[:length]
+    elif sys.stdin.buffer.seekable():
+        LOG.debug('reading data from stdin (seekable)')
+        sys.stdin.buffer.seek(seek)
+        data = sys.stdin.buffer.read(length)
     else:
-        raise click.ClickException('No data')
-
-    datalen = len(data)
-    if datalen > 256:
-        raise ValueError('Data too large')
-    elif datalen == 256:
-        datalen = 0
-
-    LOG.info('writing %d bytes of data to address %d',
-             256 if datalen == 0 else datalen, address)
+        LOG.debug('reading data from stdin (not seekable)')
+        data = sys.stdin.buffer.read()[seek:]
+        if length:
+            data = data[:length]
 
     with ctx.obj.programming_mode():
-        ctx.obj.write_block(address, data)
+        addr = address
+        for chunk in hexdump.chunks(data, 256):
+            chunklen = len(chunk)
+            LOG.info('writing %d bytes of data to address 0x%04X',
+                     256 if chunklen == 0 else chunklen, addr)
+
+            addr += 256
+            ctx.obj.write_block(address, chunk)
