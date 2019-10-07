@@ -183,6 +183,10 @@ Options:
   --display-partition-bar / --no-display-partition-bar
   --reset                         Some options (e.g. brightness-level) require
                                   a reset before they will take effect
+  -F, --format [shell|table|json]
+  -T, --table-format [fancy_grid|github|grid|html|jira|latex|latex_booktabs|latex_raw|mediawiki|moinmoin|orgtbl|pipe|plain|presto|psql|rst|simple|textile|tsv|youtrack]
+  -K, --key TEXT                  Limit output to the specified key (may be
+                                  specified multiple times)
   --help                          Show this message and exit.
 ```
 
@@ -225,6 +229,10 @@ Options:
   --tx-step [5|6.25|28.33|10|12.5|15|20|25|30|50|100]
   --lockout / --no-lockout
   -n, --name TEXT
+  -F, --format [shell|table|json]
+  -T, --table-format [fancy_grid|github|grid|html|jira|latex|latex_booktabs|latex_raw|mediawiki|moinmoin|orgtbl|pipe|plain|presto|psql|rst|simple|textile|tsv|youtrack]
+  -K, --key TEXT                  Limit output to the specified key (may be
+                                  specified multiple times)
   --help                          Show this message and exit.
 ```
 
@@ -303,7 +311,11 @@ Usage: tmv71 info type [OPTIONS]
   Return the radio type.
 
 Options:
-  --help  Show this message and exit.
+  -F, --format [shell|table|json]
+  -T, --table-format [fancy_grid|github|grid|html|jira|latex|latex_booktabs|latex_raw|mediawiki|moinmoin|orgtbl|pipe|plain|presto|psql|rst|simple|textile|tsv|youtrack]
+  -K, --key TEXT                  Limit output to the specified key (may be
+                                  specified multiple times)
+  --help                          Show this message and exit.
 ```
 
 ### memory dump
@@ -432,6 +444,10 @@ Options:
   --dcs-freq [23|25|26|31|32|36|43|47|51|53|54|65|71|72|73|74|114|115|116|122|125|131|132|134|143|145|152|155|156|162|165|172|174|205|212|223|225|226|243|244|245|246|251|252|255|261|263|265|266|271|274|306|311|315|325|331|332|343|346|351|356|364|365|371|411|412|413|423|431|432|445|446|452|454|455|462|464|465|466|503|506|516|523|565|532|546|565|606|612|624|627|631|632|654|662|664|703|712|723|731|732|734|743|754]
   --offset FLOAT
   --mode [FM|AM|NFM]
+  -F, --format [shell|table|json]
+  -T, --table-format [fancy_grid|github|grid|html|jira|latex|latex_booktabs|latex_raw|mediawiki|moinmoin|orgtbl|pipe|plain|presto|psql|rst|simple|textile|tsv|youtrack]
+  -K, --key TEXT                  Limit output to the specified key (may be
+                                  specified multiple times)
   --help                          Show this message and exit.
 ```
 
