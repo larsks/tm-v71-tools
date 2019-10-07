@@ -487,21 +487,23 @@ def radio_id(ctx):
 
 
 @info.command('type')
+@apply_format_options
 @click.pass_context
-def radio_type(ctx):
+def radio_type(ctx, format, column):
     '''Return the radio type.'''
 
     res = ctx.obj.radio_type()
-    print(fmt_dict(res))
+    print(fmt_dict(res, format=format, column=column))
 
 
 @info.command()
+@apply_format_options
 @click.pass_context
-def firmware(ctx):
+def firmware(ctx, format, column):
     '''Return information about the radio firmware.'''
 
     res = ctx.obj.radio_firmware()
-    print(*res)
+    print(fmt_dict(res, format=format, column=column))
 
 # ----------------------------------------------------------------------
 
@@ -515,8 +517,9 @@ def vfo():
 @vfo.command()
 @apply_options_from_schema(schema.FO)
 @click.argument('band', type=click.Choice(schema.BANDS))
+@apply_format_options
 @click.pass_context
-def tune(ctx, band, **kwargs):
+def tune(ctx, band, format, column, **kwargs):
     '''Get or set VFO frequency and other settings.
 
     You can only tune to frequencies on the current band. Use the
@@ -536,7 +539,7 @@ def tune(ctx, band, **kwargs):
         LOG.info('setting vfo for band %s', band)
         res = ctx.obj.set_band_vfo(band, res)
 
-    print(fmt_dict(res))
+    print(fmt_dict(res, format=format, column=column))
 
 
 @vfo.command('band')
