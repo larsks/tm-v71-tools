@@ -5,6 +5,7 @@ import hexdump
 import json
 import logging
 import os
+import shlex
 import sys
 import tabulate
 
@@ -16,220 +17,51 @@ BAND_NAMES = ['0', 'A', '1', 'B']
 
 
 class FORMATS(enum.Enum):
+    SHELL = 0
+    TABLE = 1
+    JSON = 2
 
 
-def clear_first(f):
-    '''Clear the communication channel.
+def fmt_dict(d, format=FORMATS.SHELL, table_format='grid', column=None):
+    '''Format a dictionary for output'''
 
-    This decorator will use the TMV71.clear() method to attempt
-    to put the radio in a known state before running a command.'''
-
-    @functools.wraps(f)
-    def _(ctx, *args, **kwargs):
-        if not ctx.no_clear:
-            LOG.info('clearing communication channel')
-            for i in range(ctx.clear_retries + 1):
-                try:
-                    ctx.api.clear()
-                except api.CommunicationError:
-                    LOG.info('no response from the radio (try %d)', i)
-                    ctx.api.reopen()
-                else:
-                    break
-            else:
-                raise click.ClickException(
-                    'failed to communicate with the radio')
-        return f(ctx, *args, **kwargs)
-
-    return _
-
-
-@click.group(context_settings=dict(auto_envvar_prefix='TMV71'))
-@click.option('-p', '--port', default='/dev/ttyS0')
-@click.option('-s', '--speed', default=9600)
-@click.option('-v', '--verbose', count=True)
-@click.option('-K', '--no-clear', is_flag=True)
-@click.pass_context
-def main(ctx, port, speed, verbose, no_clear):
-    try:
-        loglevel = ['WARNING', 'INFO', 'DEBUG'][verbose]
-    except IndexError:
-        loglevel = 'DEBUG'
-
-    logging.basicConfig(level=loglevel)
-
-    ctx.obj = api.TMV71(port, speed=speed, debug=(verbose > 2))
-
-    if not no_clear:
-        LOG.info('clearing communication channel')
-        ctx.obj.clear()
-
-
-@main.command()
-@click.argument('command')
-@click.argument('args', nargs=-1)
-@click.pass_context
-def raw(ctx, command, args):
-    '''Send a raw command to the radio and display the response.'''
-
-    res = ctx.obj.send_command(command, *args)
-    print(*res)
-
-
-def fmt_dict(d, format=FORMATS.KEYVALUE, column=None):
     if isinstance(format, str):
         format = getattr(FORMATS, format.upper())
 
     if column:
         d = {k: d[k] for k in column}
 
-    if format == FORMATS.KEYVALUE:
-        return '\n'.join('{}={}'.format(k, v) for k, v in d.items())
+    if format == FORMATS.SHELL:
+        return '\n'.join('{}={}'.format(k, shlex.quote('{}'.format(v)))
+                         for k, v in d.items())
     elif format == FORMATS.JSON:
         return json.dumps(d, indent=2)
     elif format == FORMATS.TABLE:
-        return tabulate.tabulate(d.items(), tablefmt='grid')
+        return tabulate.tabulate(d.items(), tablefmt=table_format)
 
 
-@main.command()
-@click.argument('message', default=None, required=False)
-@click.pass_context
-def poweron_message(ctx, message):
-    '''Get or set the power on message.'''
+def formatted(f):
+    '''Decoration for commands that produce formatted output.
 
-    if message is None:
-        res = ctx.obj.get_poweron_message()
-    else:
-        res = ctx.obj.set_poweron_message(message)
+    Adds formatting options to the command, takes a dictionary
+    returned from the command and passes it to fmt_dict for output.'''
 
-    print(res[0])
+    @click.option('--format', '-f',
+                  type=click.Choice(x.name.lower() for x in FORMATS),
+                  default=list(FORMATS)[0].name.lower())
+    @click.option('--table-format', '-T', default='grid')
+    @click.option('--column', '-c', multiple=True)
+    @functools.wraps(f)
+    def _(format, table_format, column, *args, **kwargs):
+        res = f(*args, **kwargs)
+        print(fmt_dict(res, format, table_format, column))
 
-
-@main.command()
-@click.option('-1', '--single', 'mode', flag_value=1)
-@click.option('-2', '--dual', 'mode', flag_value=2)
-@click.pass_context
-def dual_band(ctx, mode):
-    '''Get or set dual-band mode for the control band.'''
-
-    if mode is None:
-        res = ctx.obj.get_dual_band_mode()
-    elif mode == 1:
-        res = ctx.obj.set_single_band_mode()
-    elif mode == 2:
-        res = ctx.obj.set_dual_band_mode()
-    else:
-        raise click.ClickException('mode must be 1 or 2')
-
-    print(['dual', 'single'][int(res[0])])
-
-
-def normalize_band(band):
-    if band in ['0', 'A']:
-        return 0
-    elif band in ['1', 'B']:
-        return 1
-    else:
-        raise ValueError('invalid band number: {}'.format(band))
-
-
-@main.command()
-@click.option('-c', '--control')
-@click.option('-p', '--ptt')
-@click.option('-b', '--both', '--cp')
-@click.pass_context
-def control_band(ctx, control, ptt, both):
-    '''Select control and ptt band.'''
-
-    res = ctx.obj.get_ptt_ctrl_band()
-
-    if both is not None:
-        control = ptt = both
-
-    if control is None and ptt is None:
-        print(*res)
-        return
-
-    if control is not None:
-        control = normalize_band(control)
-        res[0] = control
-
-    if ptt is not None:
-        ptt = normalize_band(ptt)
-        res[1] = ptt
-
-    res = ctx.obj.set_ptt_ctrl_band(*res)
-    print(*res)
-
-
-@main.command()
-@click.option('--on', 'ptt_state', flag_value=True)
-@click.option('--off', 'ptt_state', flag_value=False, default=False)
-@click.pass_context
-def ptt(ctx, ptt_state):
-    '''Activate or deactivate transmitter.'''
-
-    ctx.obj.set_ptt(ptt_state)
-
-
-@main.command()
-@click.option('--vfo', 'mode',
-              flag_value=schema.BAND_MODE.index('VFO'))
-@click.option('--mem', '--memory', 'mode',
-              flag_value=schema.BAND_MODE.index('MEM'))
-@click.option('--call', 'mode',
-              flag_value=schema.BAND_MODE.index('CALL'))
-@click.option('--wx', '--weather', 'mode',
-              flag_value=schema.BAND_MODE.index('WX'))
-@click.argument('band', type=click.Choice(BAND_NAMES))
-@click.pass_context
-def band_mode(ctx, mode, band):
-    '''Set selected band to VFO, MEM, call channel, or weather.'''
-
-    band = normalize_band(band)
-    if mode is None:
-        res = ctx.obj.get_band_mode(band)
-    else:
-        res = ctx.obj.set_band_mode(band, int(mode))
-
-    print(schema.BAND_MODE[int(res[1])])
-
-
-@main.command()
-@click.option('--low', 'power', flag_value=schema.TX_POWER.index('LOW'))
-@click.option('--medium', '--med', 'power',
-              flag_value=schema.TX_POWER.index('MED'))
-@click.option('--high', 'power',
-              flag_value=schema.TX_POWER.index('HIGH'))
-@click.argument('band', type=click.Choice(BAND_NAMES))
-@click.pass_context
-def txpower(ctx, power, band):
-    '''Set tx power for the selected band.'''
-
-    band = normalize_band(band)
-    if power is None:
-        res = ctx.obj.get_tx_power(band)
-    else:
-        res = ctx.obj.set_tx_power(band, int(power))
-
-    print(*res)
-
-
-def apply_format_options(f):
-    options = [
-        click.option('--format', '-f',
-                     type=click.Choice(['keyvalue', 'json', 'csv', 'table']),
-                     default='keyvalue'),
-        click.option('--column', '-c', multiple=True)
-    ]
-
-    for option in options:
-        f = option(f)
-
-    return f
+    return _
 
 
 def apply_options_from_schema(model, **kwargs):
+    '''Create command line options for fields described in a schema'''
+
     options = []
 
     for fname, fspec in model.declared_fields.items():
@@ -262,6 +94,207 @@ def apply_options_from_schema(model, **kwargs):
     return _apply_options
 
 
+def clear_first(f):
+    '''Clear the communication channel.
+
+    This decorator will use the TMV71.clear() method to attempt
+    to put the radio in a known state before running a command.'''
+
+    @functools.wraps(f)
+    def _(ctx, *args, **kwargs):
+        if not ctx.no_clear:
+            LOG.info('clearing communication channel')
+            for i in range(ctx.clear_retries + 1):
+                try:
+                    ctx.api.clear()
+                except api.CommunicationError:
+                    LOG.info('no response from the radio (try %d)', i)
+                    ctx.api.reopen()
+                else:
+                    break
+            else:
+                raise click.ClickException(
+                    'failed to communicate with the radio')
+        return f(ctx, *args, **kwargs)
+
+    return _
+
+
+class ApplicationContext:
+    '''Store settings and global state for the cli'''
+
+    def __init__(self, api, no_clear=False, clear_retries=0):
+        self.api = api
+        self.no_clear = no_clear
+        self.clear_retries = clear_retries
+
+
+@click.group(context_settings=dict(auto_envvar_prefix='TMV71'))
+@click.option('-p', '--port', default='/dev/ttyS0')
+@click.option('-s', '--speed', default=9600)
+@click.option('-v', '--verbose', count=True)
+@click.option('-K', '--no-clear', is_flag=True)
+@click.option('-R', '--clear-retries', type=int, default=0)
+@click.pass_context
+def main(ctx, port, speed, verbose, no_clear, clear_retries):
+    try:
+        loglevel = ['WARNING', 'INFO', 'DEBUG'][verbose]
+    except IndexError:
+        loglevel = 'DEBUG'
+
+    logging.basicConfig(level=loglevel)
+
+    ctx.obj = ApplicationContext(
+        api=api.TMV71(port, speed=speed, debug=(verbose > 2)),
+        no_clear=no_clear,
+        clear_retries=clear_retries,
+    )
+
+
+@main.command()
+@click.argument('command')
+@click.argument('args', nargs=-1)
+@click.pass_obj
+@clear_first
+def raw(ctx, command, args):
+    '''Send a raw command to the radio and display the response.'''
+
+    res = ctx.api.send_command(command, *args)
+    print(*res)
+
+
+@main.command()
+@click.argument('message', default=None, required=False)
+@click.pass_obj
+@clear_first
+def poweron_message(ctx, message):
+    '''Get or set the power on message.'''
+
+    if message is None:
+        res = ctx.api.get_poweron_message()
+    else:
+        res = ctx.api.set_poweron_message(message)
+
+    print(res[0])
+
+
+@main.command()
+@click.option('-1', '--single', 'mode', flag_value=1)
+@click.option('-2', '--dual', 'mode', flag_value=2)
+@click.pass_obj
+@clear_first
+def dual_band(ctx, mode):
+    '''Get or set dual-band mode for the control band.'''
+
+    if mode is None:
+        res = ctx.api.get_dual_band_mode()
+    elif mode == 1:
+        res = ctx.api.set_single_band_mode()
+    elif mode == 2:
+        res = ctx.api.set_dual_band_mode()
+    else:
+        raise click.ClickException('mode must be 1 or 2')
+
+    print(['dual', 'single'][int(res[0])])
+
+
+def normalize_band(band):
+    '''Turns a band name into a numeric 0 or 1'''
+
+    if band in ['0', 'A']:
+        return 0
+    elif band in ['1', 'B']:
+        return 1
+    else:
+        raise ValueError('invalid band number: {}'.format(band))
+
+
+@main.command()
+@click.option('-c', '--control')
+@click.option('-p', '--ptt')
+@click.option('-b', '--both', '--cp')
+@click.pass_obj
+@clear_first
+def control_band(ctx, control, ptt, both):
+    '''Select control and ptt band.'''
+
+    res = ctx.api.get_ptt_ctrl_band()
+
+    if both is not None:
+        control = ptt = both
+
+    if control is None and ptt is None:
+        print(*res)
+        return
+
+    if control is not None:
+        control = normalize_band(control)
+        res[0] = control
+
+    if ptt is not None:
+        ptt = normalize_band(ptt)
+        res[1] = ptt
+
+    res = ctx.api.set_ptt_ctrl_band(*res)
+    print(*res)
+
+
+@main.command()
+@click.option('--on', 'ptt_state', flag_value=True)
+@click.option('--off', 'ptt_state', flag_value=False, default=False)
+@click.pass_obj
+@clear_first
+def ptt(ctx, ptt_state):
+    '''Activate or deactivate transmitter.'''
+
+    ctx.api.set_ptt(ptt_state)
+
+
+@main.command()
+@click.option('--vfo', 'mode',
+              flag_value=schema.BAND_MODE.index('VFO'))
+@click.option('--mem', '--memory', 'mode',
+              flag_value=schema.BAND_MODE.index('MEM'))
+@click.option('--call', 'mode',
+              flag_value=schema.BAND_MODE.index('CALL'))
+@click.option('--wx', '--weather', 'mode',
+              flag_value=schema.BAND_MODE.index('WX'))
+@click.argument('band', type=click.Choice(BAND_NAMES))
+@click.pass_obj
+@clear_first
+def band_mode(ctx, mode, band):
+    '''Set selected band to VFO, MEM, call channel, or weather.'''
+
+    band = normalize_band(band)
+    if mode is None:
+        res = ctx.api.get_band_mode(band)
+    else:
+        res = ctx.api.set_band_mode(band, int(mode))
+
+    print(schema.BAND_MODE[int(res[1])])
+
+
+@main.command()
+@click.option('--low', 'power', flag_value=schema.TX_POWER.index('LOW'))
+@click.option('--medium', '--med', 'power',
+              flag_value=schema.TX_POWER.index('MED'))
+@click.option('--high', 'power',
+              flag_value=schema.TX_POWER.index('HIGH'))
+@click.argument('band', type=click.Choice(BAND_NAMES))
+@click.pass_obj
+@clear_first
+def txpower(ctx, power, band):
+    '''Set tx power for the selected band.'''
+
+    band = normalize_band(band)
+    if power is None:
+        res = ctx.api.get_tx_power(band)
+    else:
+        res = ctx.api.set_tx_power(band, int(power))
+
+    print(*res)
+
+
 def resolve_range(rspec, default=None):
     selected = default
     if rspec:
@@ -278,7 +311,8 @@ def resolve_range(rspec, default=None):
 
 @main.command()
 @click.argument('speed', type=click.Choice(api.PORT_SPEED), required=False)
-@click.pass_context
+@click.pass_obj
+@clear_first
 def port_speed(ctx, speed):
     '''Get or set the PC port speed.
 
@@ -287,13 +321,13 @@ def port_speed(ctx, speed):
 
     Valid port speeds are 9600, 19200, 38400, and 57600.'''
 
-    with ctx.obj.programming_mode():
+    with ctx.api.programming_mode():
         if speed is None:
             LOG.info('getting port speed')
-            speed = ctx.obj.get_port_speed()
+            speed = ctx.api.get_port_speed()
         else:
             LOG.info('setting port speed to %d bps', speed)
-            ctx.obj.set_port_speed(speed)
+            ctx.api.set_port_speed(speed)
 
     print(speed)
 
@@ -303,11 +337,12 @@ def port_speed(ctx, speed):
 @click.option('--reset', is_flag=True,
               help='Some options (e.g. brightness-level) require '
               'a reset before they will take effect')
-@apply_format_options
-@click.pass_context
-def radio_set(ctx, reset, format, column, **kwargs):
+@formatted
+@click.pass_obj
+@clear_first
+def radio_set(ctx, reset, **kwargs):
     '''Get or set various configuration options.'''
-    res = ctx.obj.get_radio_config()
+    res = ctx.api.get_radio_config()
 
     set_radio = False
     for k, v in kwargs.items():
@@ -319,20 +354,21 @@ def radio_set(ctx, reset, format, column, **kwargs):
 
     if set_radio:
         LOG.info('configuring radio')
-        res = ctx.obj.set_radio_config(res)
+        res = ctx.api.set_radio_config(res)
 
     if reset:
-        with ctx.obj.programming_mode():
+        with ctx.api.programming_mode():
             pass
 
-    print(fmt_dict(res, format=format, column=column))
+    return res
 
 
 @main.command()
 @click.option('--wireless/--no-wireless', default=None)
 @click.option('--repeater/--no-repeater', default=None)
 @click.option('--normal', is_flag=True, default=None)
-@click.pass_context
+@click.pass_obj
+@clear_first
 def op_mode(ctx, wireless, repeater, normal):
     '''Control the radio operating mode.
 
@@ -340,36 +376,37 @@ def op_mode(ctx, wireless, repeater, normal):
     the wireless remote control (--wireless), or both. Use --normal to
     return to normal operation.
     '''
-    with ctx.obj.programming_mode():
+    with ctx.api.programming_mode():
         for opt in [wireless, repeater, normal]:
             if opt is not None:
                 break
         else:
-            print(*ctx.obj.get_operating_mode())
+            print(*ctx.api.get_operating_mode())
             return
 
         if normal:
             repeater = 0
             wireless = 0
 
-        ctx.obj.set_operating_mode(repeater, wireless)
+        ctx.api.set_operating_mode(repeater, wireless)
 
 
 @main.command()
 @click.argument('remote_id', required=False)
-@click.pass_context
+@click.pass_obj
+@clear_first
 def remote_id(ctx, remote_id):
     '''Get or set the remote id.
 
     This is the access code require to control the radio in wireless
     remote mode.'''
 
-    with ctx.obj.programming_mode():
+    with ctx.api.programming_mode():
         if remote_id is None:
-            res = ctx.obj.get_remote_id()
+            res = ctx.api.get_remote_id()
             print(res.decode('ascii'))
         else:
-            ctx.obj.set_remote_id(remote_id.encode('ascii'))
+            ctx.api.set_remote_id(remote_id.encode('ascii'))
 
 # ----------------------------------------------------------------------
 
@@ -383,15 +420,16 @@ def channel():
 @channel.command('tune')
 @click.argument('band', type=click.Choice(BAND_NAMES))
 @click.argument('channel', type=int, required=False)
-@click.pass_context
+@click.pass_obj
+@clear_first
 def channel_tune(ctx, band, channel):
     '''Get or set the memory channel for the selected band.'''
 
     band = normalize_band(band)
     if channel is None:
-        res = ctx.obj.get_channel(band)
+        res = ctx.api.get_channel(band)
     else:
-        res = ctx.obj.set_channel(band, channel)
+        res = ctx.api.set_channel(band, channel)
 
     print('{:03d}'.format(int(res[1])))
 
@@ -400,12 +438,13 @@ def channel_tune(ctx, band, channel):
 @apply_options_from_schema(schema.ME)
 @click.option('-n', '--name')
 @click.argument('channel', type=int)
-@apply_format_options
-@click.pass_context
-def entry(ctx, channel, name, format, column, **kwargs):
+@formatted
+@click.pass_obj
+@clear_first
+def entry(ctx, channel, name, **kwargs):
     '''View or edit memory channels.'''
 
-    res = ctx.obj.get_channel_entry(channel)
+    res = ctx.api.get_channel_entry(channel)
 
     set_radio = False
     for k, v in kwargs.items():
@@ -417,20 +456,21 @@ def entry(ctx, channel, name, format, column, **kwargs):
 
     if name is not None:
         LOG.info('setting name for channel %s',  channel)
-        ctx.obj.set_channel_name(channel, name)
+        ctx.api.set_channel_name(channel, name)
 
     if set_radio:
         LOG.info('configuring channel %s',  channel)
-        res = ctx.obj.set_channel_entry(channel, res)
-        res = ctx.obj.get_channel_entry(channel)
+        res = ctx.api.set_channel_entry(channel, res)
+        res = ctx.api.get_channel_entry(channel)
 
-    print(fmt_dict(res, format=format, column=column))
+    return res
 
 
 @channel.command('export')
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
 @click.option('-c', '--channels', multiple=True)
-@click.pass_context
+@click.pass_obj
+@clear_first
 def export_channels(ctx, output, channels):
     '''Export channels to a CSJ document.
 
@@ -445,9 +485,9 @@ def export_channels(ctx, output, channels):
             LOG.info('getting information for channel %d', channel)
 
             try:
-                channel_config = ctx.obj.get_channel_entry(channel)
+                channel_config = ctx.api.get_channel_entry(channel)
                 values = channel_config.schema.to_raw_tuple(channel_config)
-                values.append(ctx.obj.get_channel_name(channel))
+                values.append(ctx.api.get_channel_name(channel))
 
                 output.write(','.join(json.dumps(x) for x in values))
                 output.write('\n')
@@ -460,7 +500,8 @@ def export_channels(ctx, output, channels):
 @click.option('-i', '--input', type=click.File('r'), default=sys.stdin)
 @click.option('-s', '--sync', is_flag=True)
 @click.option('-c', '--channels', multiple=True)
-@click.pass_context
+@click.pass_obj
+@clear_first
 def import_channels(ctx, input, sync, channels):
     '''Import channels from a CSJ document.
 
@@ -483,14 +524,14 @@ def import_channels(ctx, input, sync, channels):
             if channel not in channelmap:
                 if sync:
                     LOG.info('deleting channel %d', channel)
-                    ctx.obj.delete_channel_entry(channel)
+                    ctx.api.delete_channel_entry(channel)
             else:
                 LOG.info('setting information for channel %d', channel)
                 channel_config = schema.ME.from_raw_tuple(channelmap[channel])
                 channel_name = channelmap[channel][-1]
 
-                ctx.obj.set_channel_entry(channel, channel_config)
-                ctx.obj.set_channel_name(channel, channel_name)
+                ctx.api.set_channel_entry(channel, channel_config)
+                ctx.api.set_channel_name(channel, channel_name)
 
 # ----------------------------------------------------------------------
 
@@ -502,32 +543,34 @@ def info():
 
 
 @info.command('id')
-@click.pass_context
+@click.pass_obj
+@clear_first
 def radio_id(ctx):
     '''Return the radio model.'''
 
-    res = ctx.obj.radio_id()
+    res = ctx.api.radio_id()
     print(res[0])
 
 
 @info.command('type')
-@apply_format_options
-@click.pass_context
-def radio_type(ctx, format, column):
+@formatted
+@click.pass_obj
+@clear_first
+def radio_type(ctx):
     '''Return the radio type.'''
 
-    res = ctx.obj.radio_type()
-    print(fmt_dict(res, format=format, column=column))
+    res = ctx.api.radio_type()
+    return res
 
 
 @info.command()
-@apply_format_options
-@click.pass_context
-def firmware(ctx, format, column):
+@click.pass_obj
+@clear_first
+def firmware(ctx):
     '''Return information about the radio firmware.'''
 
-    res = ctx.obj.radio_firmware()
-    print(fmt_dict(res, format=format, column=column))
+    res = ctx.api.radio_firmware()
+    print(*res)
 
 # ----------------------------------------------------------------------
 
@@ -541,15 +584,16 @@ def vfo():
 @vfo.command()
 @apply_options_from_schema(schema.FO)
 @click.argument('band', type=click.Choice(schema.BANDS))
-@apply_format_options
-@click.pass_context
-def tune(ctx, band, format, column, **kwargs):
+@formatted
+@click.pass_obj
+@clear_first
+def tune(ctx, band, **kwargs):
     '''Get or set VFO frequency and other settings.
 
     You can only tune to frequencies on the current band. Use the
     frequency-band command to change bands.'''
 
-    res = ctx.obj.get_band_vfo(band)
+    res = ctx.api.get_band_vfo(band)
 
     set_radio = False
     for k, v in kwargs.items():
@@ -561,16 +605,17 @@ def tune(ctx, band, format, column, **kwargs):
 
     if set_radio:
         LOG.info('setting vfo for band %s', band)
-        res = ctx.obj.set_band_vfo(band, res)
+        res = ctx.api.set_band_vfo(band, res)
 
-    print(fmt_dict(res, format=format, column=column))
+    return res
 
 
 @vfo.command('band')
 @click.argument('band', type=click.Choice(BAND_NAMES))
 @click.argument('freq_band', type=click.Choice(api.FREQUENCY_BAND),
                 required=False)
-@click.pass_context
+@click.pass_obj
+@clear_first
 def frequency_band(ctx, band, freq_band):
     '''Get or set the frequency band for the selected radio band.
 
@@ -579,12 +624,12 @@ def frequency_band(ctx, band, freq_band):
     subset of the available frequencies.'''
 
     band = normalize_band(band)
-    with ctx.obj.programming_mode():
+    with ctx.api.programming_mode():
         if freq_band is None:
-            freq_band = ctx.obj.get_frequency_band(band)
+            freq_band = ctx.api.get_frequency_band(band)
             pass
         else:
-            ctx.obj.set_frequency_band(band, freq_band)
+            ctx.api.set_frequency_band(band, freq_band)
 
     print(freq_band)
 
@@ -600,15 +645,16 @@ def memory():
 @memory.command()
 @click.option('-o', '--output', type=click.File('wb'),
               default=sys.stdout.buffer)
-@click.pass_context
+@click.pass_obj
+@clear_first
 def dump(ctx, output):
     '''Read entire radio memory and write it to a file.'''
 
     LOG.info('read from radio to file "%s"', output.name)
     try:
-        with output, ctx.obj.programming_mode():
+        with output, ctx.api.programming_mode():
             try:
-                ctx.obj.memory_dump(output)
+                ctx.api.memory_dump(output)
             except api.CommunicationError as err:
                 raise click.ClickException(str(err))
     except Exception:
@@ -620,14 +666,15 @@ def dump(ctx, output):
 
 @memory.command()
 @click.option('-i', '--input', type=click.File('rb'), default=sys.stdin)
-@click.pass_context
+@click.pass_obj
+@clear_first
 def restore(ctx, input):
     '''Read memory dump from a file and write it to the radio.'''
 
     LOG.info('write to radio from file "%s"', input.name)
-    with input, ctx.obj.programming_mode():
+    with input, ctx.api.programming_mode():
         try:
-            ctx.obj.memory_restore(input)
+            ctx.api.memory_restore(input)
         except api.CommunicationError as err:
             raise click.ClickException(str(err))
 
@@ -651,7 +698,8 @@ def flexint(v):
 @click.option('-h', '--hexdump', '_hexdump', is_flag=True)
 @click.option('-l', '--length', type=flexint, default=0)
 @click.argument('address')
-@click.pass_context
+@click.pass_obj
+@clear_first
 def read_block(ctx, output, _hexdump, address, length):
     '''Read one or more memory blocks from the radio.
 
@@ -684,7 +732,7 @@ def read_block(ctx, output, _hexdump, address, length):
         addr_start = flexint(address)
         addr_end = addr_start + (length if length else 256)
 
-    with output, ctx.obj.programming_mode():
+    with output, ctx.api.programming_mode():
         addr = addr_start
         while addr < addr_end:
             chunklen = min(256, addr_end - addr)
@@ -694,7 +742,7 @@ def read_block(ctx, output, _hexdump, address, length):
 
             LOG.info('reading %d bytes of memory from 0x%04X',
                      256 if chunklen == 0 else chunklen, addr)
-            data = ctx.obj.read_block(addr, chunklen)
+            data = ctx.api.read_block(addr, chunklen)
 
             if _hexdump:
                 output.write(
@@ -712,7 +760,8 @@ def read_block(ctx, output, _hexdump, address, length):
 @click.option('-s', '--seek', type=flexint, default=0)
 @click.option('-l', '--length', type=flexint)
 @click.argument('address', type=flexint)
-@click.pass_context
+@click.pass_obj
+@clear_first
 def write_block(ctx, input, hexdata, seek, length, address):
     '''Write data to radio memory.
 
@@ -756,7 +805,7 @@ def write_block(ctx, input, hexdata, seek, length, address):
         if length:
             data = data[:length]
 
-    with ctx.obj.programming_mode():
+    with ctx.api.programming_mode():
         addr = address
         for chunk in hexdump.chunks(data, 256):
             chunklen = len(chunk)
@@ -764,4 +813,4 @@ def write_block(ctx, input, hexdata, seek, length, address):
                      256 if chunklen == 0 else chunklen, addr)
 
             addr += 256
-            ctx.obj.write_block(address, chunk)
+            ctx.api.write_block(address, chunk)
