@@ -154,3 +154,39 @@ class TestApi:
             b'ME 000\rME 000,0145430000,0,1,1,0,1,0,23,'
             b'23,000,00600000,0,0000000000,0,1\r'
         )
+
+    def test_memory_restore(self, radio):
+        radio._port.stuff(b'0M\rW\x00\x00\x04')
+        radio._port.stuff(radio.memory_magic)
+
+        # We will need to fake responses to 127 individual write
+        # commands.
+        radio._port.stuff(b'\x06' * 127)
+        radio._port.stuff(b'\x06\x06\x06\x06\r\x00')
+
+        fd = io.BytesIO(radio.memory_magic + b'\x00' * 32508)
+
+        with radio.programming_mode():
+            radio.memory_restore(fd)
+
+    def test_memory_restore_bad_data(self, radio):
+        radio._port.stuff(b'0M\rW\x00\x00\x04')
+        radio._port.stuff(radio.memory_magic)
+        radio._port.stuff(b'\x06\x06\r\x00')
+
+        fd = io.BytesIO(b'\x00' * 4)
+
+        with radio.programming_mode():
+            with pytest.raises(ValueError):
+                radio.memory_restore(fd)
+
+    def test_memory_restore_short_data(self, radio):
+        radio._port.stuff(b'0M\rW\x00\x00\x04')
+        radio._port.stuff(radio.memory_magic)
+        radio._port.stuff(b'\x06\x06\x06\x06\r\x00')
+
+        fd = io.BytesIO(radio.memory_magic)
+
+        with radio.programming_mode():
+            with pytest.raises(EOFError):
+                radio.memory_restore(fd)

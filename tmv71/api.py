@@ -496,6 +496,8 @@ class TMV71:
             addr = block * 256
             LOG.debug('writing block %d', block)
             data = fd.read(256)
+            if not data:
+                raise EOFError('Ran out of data in memory_restore')
             self.write_block(addr, data)
 
         self.write_block(0, self.memory_magic)
