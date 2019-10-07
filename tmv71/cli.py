@@ -22,14 +22,14 @@ class FORMATS(enum.Enum):
     JSON = 2
 
 
-def fmt_dict(d, format=FORMATS.SHELL, table_format='grid', column=None):
+def fmt_dict(d, format=FORMATS.SHELL, table_format='grid', key=None):
     '''Format a dictionary for output'''
 
     if isinstance(format, str):
         format = getattr(FORMATS, format.upper())
 
-    if column:
-        d = {k: d[k] for k in column}
+    if key:
+        d = {k: d[k] for k in key}
 
     if format == FORMATS.SHELL:
         return '\n'.join('{}={}'.format(k, shlex.quote('{}'.format(v)))
@@ -46,15 +46,18 @@ def formatted(f):
     Adds formatting options to the command, takes a dictionary
     returned from the command and passes it to fmt_dict for output.'''
 
-    @click.option('--format', '-f',
+    @click.option('--format', '-F',
                   type=click.Choice(x.name.lower() for x in FORMATS),
                   default=list(FORMATS)[0].name.lower())
-    @click.option('--table-format', '-T', default='grid')
-    @click.option('--column', '-c', multiple=True)
+    @click.option('--table-format', '-T', default='grid',
+                  type=click.Choice(tabulate.tabulate_formats))
+    @click.option('--key', '-K', multiple=True,
+                  help='Limit output to the specified key (may be '
+                  'specified multiple times)')
     @functools.wraps(f)
-    def _(format, table_format, column, *args, **kwargs):
+    def _(format, table_format, key, *args, **kwargs):
         res = f(*args, **kwargs)
-        print(fmt_dict(res, format, table_format, column))
+        print(fmt_dict(res, format, table_format, key))
 
     return _
 
