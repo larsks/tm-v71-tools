@@ -12,6 +12,11 @@ import tabulate
 from tmv71 import api
 from tmv71 import schema
 
+TMV71_CONFIG = os.path.expanduser(
+    os.path.join(os.environ.get('XDG_CONFIG_HOME', '~/.config'),
+                 'tmv71.json')
+)
+
 LOG = logging.getLogger(__name__)
 BAND_NAMES = ['A', 'B', '0', '1']
 
@@ -107,9 +112,9 @@ def clear_first(f):
     controls how many times it will retry before failing with an error.'''
     @functools.wraps(f)
     def _(ctx, *args, **kwargs):
-        if not ctx.no_clear:
+        if not ctx.settings.no_clear:
             LOG.info('clearing communication channel')
-            for i in range(ctx.clear_retries + 1):
+            for i in range(ctx.settings.clear_retries + 1):
                 try:
                     ctx.api.clear()
                 except api.CommunicationError:
@@ -125,38 +130,65 @@ def clear_first(f):
     return _
 
 
+class ApplicationSettings:
+    no_clear = False
+    clear_retries = 0
+    port = '/dev/ttyS0'
+    speed = 9600
+    verbose = 0
+
+
 class ApplicationContext:
     '''Store settings and global state for the cli'''
 
-    def __init__(self, api, no_clear=False, clear_retries=0):
-        self.api = api
-        self.no_clear = no_clear
-        self.clear_retries = clear_retries
+    def __init__(self, settings):
+        self.settings = settings
+        self.init_api()
+
+    def init_api(self):
+        self.api = api.TMV71(port=self.settings.port,
+                             speed=self.settings.speed,
+                             debug=(self.settings.verbose > 2))
 
 
 @click.group(context_settings=dict(auto_envvar_prefix='TMV71'))
-@click.option('-p', '--port', default='/dev/ttyS0')
-@click.option('-s', '--speed', default=9600)
-@click.option('-v', '--verbose', count=True)
-@click.option('-K', '--no-clear', is_flag=True,
+@click.option('-f', '--config-file', default=TMV71_CONFIG)
+@click.option('-p', '--port')
+@click.option('-s', '--speed')
+@click.option('-K', '--no-clear', is_flag=True, default=None,
               help='Skip initial clear operation before running command')
-@click.option('-R', '--clear-retries', type=int, default=0,
+@click.option('-R', '--clear-retries', type=int,
               help='Number of times to retry clear operation '
               'before failing')
+@click.option('-v', '--verbose', count=True)
 @click.pass_context
-def main(ctx, port, speed, verbose, no_clear, clear_retries):
+def main(ctx, config_file, verbose, **kwargs):
+    settings = ApplicationSettings()
+
+    # Override default settings with settings from configuration file
     try:
-        loglevel = ['WARNING', 'INFO', 'DEBUG'][verbose]
+        with open(config_file) as fd:
+            conf = json.load(fd)
+        LOG.info('loaded configuration from %s', config_file)
+        for k, v in conf.items():
+            setattr(settings, k, v)
+    except IOError:
+        pass
+
+    # Override settings from configuration file with settings from
+    # command line
+    for k, v in kwargs.items():
+        if v is not None:
+            setattr(settings, k, v)
+
+    try:
+        loglevel = ['WARNING', 'INFO', 'DEBUG'][settings.verbose]
     except IndexError:
         loglevel = 'DEBUG'
 
     logging.basicConfig(level=loglevel)
 
-    ctx.obj = ApplicationContext(
-        api=api.TMV71(port, speed=speed, debug=(verbose > 2)),
-        no_clear=no_clear,
-        clear_retries=clear_retries,
-    )
+    ctx.obj = ApplicationContext(settings)
 
 
 @main.command()
