@@ -9,6 +9,7 @@ import shlex
 import sys
 import tabulate
 
+from tmv71 import __version__
 from tmv71 import api
 from tmv71 import schema
 
@@ -52,7 +53,7 @@ def formatted(f):
     returned from the command and passes it to fmt_dict for output.'''
 
     @click.option('--format', '-F',
-                  type=click.Choice(x.name.lower() for x in FORMATS),
+                  type=click.Choice([x.name.lower() for x in FORMATS]),
                   default=list(FORMATS)[0].name.lower())
     @click.option('--table-format', '-T', default='grid',
                   type=click.Choice(tabulate.tabulate_formats))
@@ -153,6 +154,7 @@ class ApplicationContext:
 
 @click.group(context_settings=dict(auto_envvar_prefix='TMV71'))
 @click.option('-f', '--config-file', default=TMV71_CONFIG)
+@click.option('--no-config', is_flag=True)
 @click.option('-p', '--port')
 @click.option('-s', '--speed')
 @click.option('-K', '--no-clear', is_flag=True, default=None,
@@ -162,18 +164,19 @@ class ApplicationContext:
               'before failing')
 @click.option('-v', '--verbose', count=True)
 @click.pass_context
-def main(ctx, config_file, verbose, **kwargs):
+def main(ctx, config_file, no_config, verbose, **kwargs):
     settings = ApplicationSettings()
 
     # Override default settings with settings from configuration file
-    try:
-        with open(config_file) as fd:
-            conf = json.load(fd)
-        LOG.info('loaded configuration from %s', config_file)
-        for k, v in conf.items():
-            setattr(settings, k, v)
-    except IOError:
-        pass
+    if not no_config:
+        try:
+            with open(config_file) as fd:
+                conf = json.load(fd)
+            LOG.info('loaded configuration from %s', config_file)
+            for k, v in conf.items():
+                setattr(settings, k, v)
+        except IOError:
+            pass
 
     # Override settings from configuration file with settings from
     # command line
@@ -189,6 +192,11 @@ def main(ctx, config_file, verbose, **kwargs):
     logging.basicConfig(level=loglevel)
 
     ctx.obj = ApplicationContext(settings)
+
+
+@main.command()
+def version():
+    print('{}'.format(__version__))
 
 
 @main.command()
