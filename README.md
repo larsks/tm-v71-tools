@@ -61,16 +61,20 @@ You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass th
 Usage: tmv71 [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  -f, --config-file TEXT
-  --no-config
-  -p, --port TEXT
-  -s, --speed TEXT
-  -K, --no-clear               Skip initial clear operation before running
-                               command
-  -R, --clear-retries INTEGER  Number of times to retry clear operation before
-                               failing
-  -v, --verbose
-  --help                       Show this message and exit.
+  -f, --config-file TEXT          Path to a JSON configuration file  [default:
+                                  /home/lars/.config/tmv71.json]
+  --no-config                     Do not attempt to read any configuration
+                                  file
+  -p, --port TEXT                 Path to a serial device
+  -s, --speed [9600|19200|38400|57600]
+                                  Set the port speed
+  -K, --no-clear                  Skip initial clear operation before running
+                                  command
+  -R, --clear-retries INTEGER     Number of times to retry clear operation
+                                  before failing
+  -v, --verbose                   Increase verbosity. May be specified
+                                  multiple times.
+  --help                          Show this message and exit.
 
 Commands:
   band             Commands for controlling the dual bands
@@ -86,7 +90,7 @@ Commands:
   remote-id        Get or set the remote id.
   send-dtmf        Send DTMF tones
   set              Get or set various configuration options.
-  version
+  version          Print the software version
   vfo              Commands for interacting with the VFO
 ```
 
