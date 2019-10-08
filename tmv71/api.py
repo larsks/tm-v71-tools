@@ -25,13 +25,16 @@ class CommunicationError(Exception):
     def __init__(self, msg=None):
         super().__init__(msg or self.__doc__)
 
+    def __str__(self):
+        return self.__doc__.format(*self.args)
+
 
 class UnknownDeviceError(CommunicationError):
     '''Unknown device'''
 
 
 class UnknownCommandError(CommunicationError):
-    '''The radio did not recognize the given command'''
+    '''The radio did not recognize the given command: {}'''
 
 
 class InvalidCommandError(CommunicationError):

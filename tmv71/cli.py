@@ -152,19 +152,41 @@ class ApplicationContext:
                              debug=(self.settings.verbose > 2))
 
 
+def safe_main():
+    '''Wrap commands to catch and report expected exceptions'''
+
+    res = 1
+
+    try:
+        main()
+    except api.CommunicationError as e:
+        LOG.error('%s', e)
+    except ValueError as e:
+        LOG.error('Bad value: %s', e)
+    else:
+        res = 0
+
+    sys.exit(res)
+
+
 @click.group(context_settings=dict(auto_envvar_prefix='TMV71'))
-@click.option('-f', '--config-file', default=TMV71_CONFIG)
-@click.option('--no-config', is_flag=True)
-@click.option('-p', '--port')
-@click.option('-s', '--speed')
+@click.option('-f', '--config-file', default=TMV71_CONFIG, show_default=True,
+              help='Path to a JSON configuration file')
+@click.option('--no-config', is_flag=True,
+              help='Do not attempt to read any configuration file')
+@click.option('-p', '--port',
+              help='Path to a serial device')
+@click.option('-s', '--speed', type=click.Choice(api.PORT_SPEED),
+              help='Set the port speed')
 @click.option('-K', '--no-clear', is_flag=True, default=None,
               help='Skip initial clear operation before running command')
 @click.option('-R', '--clear-retries', type=int,
               help='Number of times to retry clear operation '
               'before failing')
-@click.option('-v', '--verbose', count=True)
+@click.option('-v', '--verbose', count=True,
+              help='Increase verbosity. May be specified multiple times.')
 @click.pass_context
-def main(ctx, config_file, no_config, verbose, **kwargs):
+def main(ctx, config_file, no_config, **kwargs):
     settings = ApplicationSettings()
 
     # Override default settings with settings from configuration file
@@ -196,6 +218,7 @@ def main(ctx, config_file, no_config, verbose, **kwargs):
 
 @main.command()
 def version():
+    '''Print the software version'''
     print('{}'.format(__version__))
 
 
