@@ -29,8 +29,12 @@ You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass th
 - [port-speed](#port-speed)
 - [ptt](#ptt)
 - [set](#set)
+- [send-dtmf][#send-dtmf]
 - [band mode](#band-mode)
 - [band select](#band-select)
+- [band reverse](#band-reverse)
+- [band squelch](#band-squelch)
+- [band squelch-state](#band-squelch-state)
 - [band txpower](#band-select)
 - [channel entry](#channel-entry)
 - [channel export](#channel-export)
@@ -38,6 +42,7 @@ You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass th
 - [channel tune](#channel-tune)
 - [info firmware](#info-firmware)
 - [info id](#info-id)
+- [info serial](#info-serial)
 - [info type](#info-type)
 - [memory dump](#memory-dump)
 - [memory restore](#memory-restore)
@@ -197,6 +202,40 @@ Options:
   --help                          Show this message and exit.
 ```
 
+### band reverse
+
+```
+Usage: tmv71 band reverse [OPTIONS] [A|B|0|1]
+
+  Activate reverse on the specified band
+
+Options:
+  --on / --off
+  --help        Show this message and exit.
+```
+
+### band squelch
+
+```
+Usage: tmv71 band squelch [OPTIONS] [A|B|0|1]
+
+  Get current squelch setting for the specified band.
+
+Options:
+  --help  Show this message and exit.
+```
+
+### band squelch-state
+
+```
+Usage: tmv71 band squelch-state [OPTIONS] [A|B|0|1]
+
+  Report whether squelch is open on the specified band
+
+Options:
+  --help  Show this message and exit.
+```
+
 ### band txpower
 
 ```
@@ -305,6 +344,17 @@ Options:
 Usage: tmv71 info id [OPTIONS]
 
   Return the radio model.
+
+Options:
+  --help  Show this message and exit.
+```
+
+### info serial
+
+```
+Usage: tmv71 info serial [OPTIONS]
+
+  Return information about the radio firmware.
 
 Options:
   --help  Show this message and exit.
