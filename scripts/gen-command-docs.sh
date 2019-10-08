@@ -9,7 +9,8 @@ awk '/<!-- start command list -->/,/<!-- end command list -->/ {print}' "$1" |
 		echo "### CMD";
 		echo;
 		echo "\`\`\`";
-		tmv71 -K -p /dev/ttyKEYSPAN0 -s 9600 CMD --help;
+		[ "CMD" == "common options" ] && cmd="" || cmd="CMD"
+		tmv71 $cmd --help;
 		echo "\`\`\`";
 		echo
 		'
