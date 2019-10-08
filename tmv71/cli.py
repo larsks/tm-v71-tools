@@ -285,6 +285,7 @@ def send_dtmf(ctx, wait, tones):
 
     tones = ''.join(tones).replace(' ', '')
     if wait:
+        LOG.info('waiting until channel is free')
         band_state = ctx.api.get_ptt_ctrl_band()
         ptt_band = band_state['ptt_band']
         LOG.debug('current ptt band is %s', ptt_band)
@@ -343,7 +344,7 @@ def band_reverse(ctx, band, reverse):
         reverse = 1 if reverse else 0
         res = ctx.api.set_band_reverse(band, reverse)
 
-    print(res[1])
+    print(res)
 
 
 @band.command('mode')
@@ -367,7 +368,7 @@ def band_mode(ctx, mode, band):
     else:
         res = ctx.api.set_band_mode(band, int(mode))
 
-    print(schema.BAND_MODE[int(res[1])])
+    print(schema.BAND_MODE[res])
 
 
 @band.command('select')
@@ -446,7 +447,7 @@ def txpower(ctx, power, band):
     else:
         res = ctx.api.set_tx_power(band, int(power))
 
-    print(*res)
+    print(schema.TX_POWER[res])
 
 
 def resolve_range(rspec, default=None):
@@ -585,7 +586,7 @@ def channel_tune(ctx, band, channel):
     else:
         res = ctx.api.set_channel(band, channel)
 
-    print('{:03d}'.format(int(res[1])))
+    print('{:03d}'.format(res))
 
 
 @channel.command()

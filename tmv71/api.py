@@ -53,6 +53,17 @@ class WrongModeError(CommunicationError):
     '''Radio is not in programming mode'''
 
 
+def bandcommand(f):
+    '''A decorator for commands that have (band, value) results'''
+
+    @wraps(f)
+    def _(*args, **kwargs):
+        res = f(*args, **kwargs)
+        return int(res[1])
+
+    return _
+
+
 def pm(f):
     '''Decorator to ensure that radio is in programming mode'''
 
@@ -214,16 +225,19 @@ class TMV71:
 
         return int(self.send_command('SQ', band)[0], 16)
 
+    @bandcommand
     def get_band_squelch_state(self, band):
         '''Return the squelch setting for the given band'''
 
-        return int(self.send_command('BY', band)[1])
+        return self.send_command('BY', band)
 
+    @bandcommand
     def get_band_reverse(self, band):
         '''Return the state of reverse mode for the given band'''
 
         return self.send_command('AS', band)
 
+    @bandcommand
     def set_band_reverse(self, band, reverse_state):
         '''Return the state of reverse mode for the given band'''
 
@@ -252,9 +266,11 @@ class TMV71:
     def set_single_band_mode(self):
         return int(self.send_command('DL', 1)[0])
 
+    @bandcommand
     def get_channel(self, band):
         return self.send_command('MR', band)
 
+    @bandcommand
     def set_channel(self, band, channel):
         channel = '{:03d}'.format(channel)
         return self.send_command('MR', band, channel)
@@ -299,15 +315,19 @@ class TMV71:
                 DTMF_TONES.index(tone.upper())))
             time.sleep(self.dtmf_time_tone)
 
+    @bandcommand
     def get_band_mode(self, band):
         return self.send_command('VM', band)
 
+    @bandcommand
     def set_band_mode(self, band, mode):
         return self.send_command('VM', band, mode)
 
+    @bandcommand
     def get_tx_power(self, band):
         return self.send_command('PC', band)
 
+    @bandcommand
     def set_tx_power(self, band, power):
         return self.send_command('PC', band, power)
 
