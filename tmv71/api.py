@@ -204,7 +204,7 @@ class TMV71:
     def radio_serial(self):
         '''Return the radio serial number'''
 
-        return self.send_command('AE')
+        return schema.AE.from_tuple(self.send_command('AE'))
 
     def radio_firmware(self):
         return self.send_command('FV', 0)

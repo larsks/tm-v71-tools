@@ -358,6 +358,11 @@ class BC_Schema(RadioSchema):
     ptt_band = Integer()
 
 
+class AE_Schema(RadioSchema):
+    serial = String()
+    extra = String()
+
+
 # 0,4,0,1,0,4,1,0,10,0,0,0,0,0,0,2,0,0,0,0,2,0,1,0,0,8,0,0,00,02,14,0D,0C,15,0,0,0,0,0,4,1,1
 class MU_Schema(RadioSchema):
     beep = RadioBoolean(required=True)

@@ -728,13 +728,13 @@ def firmware(ctx):
 
 
 @info.command()
+@formatted
 @click.pass_obj
 @clear_first
 def serial(ctx):
     '''Return information about the radio firmware.'''
 
-    res = ctx.api.radio_serial()
-    print(*res)
+    return ctx.api.radio_serial()
 
 # ----------------------------------------------------------------------
 
