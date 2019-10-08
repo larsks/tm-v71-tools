@@ -274,7 +274,7 @@ class TMV71:
 
     @contextmanager
     def ptt(self):
-        '''A contact manager that ensures ptt is released'''
+        '''A context manager that ensures ptt is released'''
 
         try:
             self.set_ptt(True)
