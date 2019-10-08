@@ -5,12 +5,14 @@ import logging
 import serial
 import struct
 import sys
+import time
 
 from tmv71 import schema
 
 LOG = logging.getLogger(__name__)
 PORT_SPEED = ['9600', '19200', '38400', '57600']
 FREQUENCY_BAND = ['118', '144', '220', '300', '430', '1200']
+DTMF_TONES = '0123456789ABCD*#'
 
 M_OFFSET_PORT_SPEED = 0x21
 M_OFFSET_BANDA_BAND = 0x202
@@ -196,16 +198,41 @@ class TMV71:
 
         return schema.TY.from_tuple(self.send_command('TY'))
 
+    def radio_serial(self):
+        '''Return the radio serial number'''
+
+        return self.send_command('AE')
+
     def radio_firmware(self):
         return self.send_command('FV', 0)
 
-    def lock(self):
-        '''Enable the radio key lock'''
-        return self.send_command('LK', 1)
+    def get_band_squelch(self, band):
+        '''Return the squelch setting for the given band'''
 
-    def unlock(self):
-        '''Disable the radio key lock'''
-        return self.send_command('LK', 0)
+        return self.send_command('SQ', band)
+
+    def get_band_squelch_state(self, band):
+        '''Return the squelch setting for the given band'''
+
+        return self.send_command('BY', band)
+
+    def get_band_reverse(self, band):
+        '''Return the state of reverse mode for the given band'''
+
+        return self.send_command('AS', band)
+
+    def set_band_reverse(self, band, reverse_state):
+        '''Return the state of reverse mode for the given band'''
+
+        return self.send_command('AS', band, reverse_state)
+
+    def get_lock_state(self):
+        '''Get the current state of the key lock'''
+        return self.send_command('LK')
+
+    def set_lock_state(self, lock_state):
+        '''Set the current state of the key lock'''
+        return self.send_command('LK', 1 if lock_state else 0)
 
     def get_poweron_message(self):
         return self.send_command('MS')
@@ -242,6 +269,33 @@ class TMV71:
             return self.send_command('TX')
         else:
             return self.send_command('RX')
+
+    @contextmanager
+    def ptt(self):
+        '''A contact manager that ensures ptt is released'''
+
+        try:
+            self.set_ptt(True)
+            yield
+        finally:
+            self.set_ptt(False)
+
+    dtmf_time_tone = 0.250
+
+    def send_dtmf(self, tones):
+        '''Send a series of DTMF tones.
+
+        This will send each tone for self.dtmf_time_tone seconds
+        (default 0.250). When sending tones there are no "spaces"
+        between tones. This appears to be a limitation of the
+        underlying `DT` command.
+        '''
+
+        time.sleep(self.dtmf_time_tone)
+        for tone in tones:
+            self.send_command('DT', 0, '{:X}'.format(
+                DTMF_TONES.index(tone.upper())))
+            time.sleep(self.dtmf_time_tone)
 
     def get_band_mode(self, band):
         return self.send_command('VM', band)

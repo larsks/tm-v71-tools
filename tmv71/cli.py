@@ -196,10 +196,82 @@ def ptt(ctx, ptt_state):
     ctx.api.set_ptt(ptt_state)
 
 
+@main.command()
+@click.option('--lock/--unlock', 'lock_state', default=None)
+@click.pass_obj
+@clear_first
+def lock(ctx, lock_state):
+    '''Lock or unlock the key lock'''
+
+    if lock_state is None:
+        res = ctx.api.get_lock_state()
+    else:
+        res = ctx.api.set_lock_state(lock_state)
+
+    print(*res)
+
+
+@main.command()
+@click.argument('tones', nargs=-1)
+@click.pass_obj
+@clear_first
+def send_dtmf(ctx, tones):
+    '''Send DTMF tones'''
+
+    tones = ''.join(tones).replace(' ', '')
+    with ctx.api.ptt():
+        ctx.api.send_dtmf(tones)
+
+# ----------------------------------------------------------------------
+
+
 @main.group()
 def band():
     '''Commands for controlling the dual bands'''
     pass
+
+
+@band.command('squelch')
+@click.argument('band', type=click.Choice(BAND_NAMES))
+@click.pass_obj
+@clear_first
+def band_squelch(ctx, band):
+    '''Get current squelch setting for the specified band.'''
+
+    band = normalize_band(band)
+    res = ctx.api.get_band_squelch(band)
+    res = int(res[0], 16)
+    print(res)
+
+
+@band.command('squelch-state')
+@click.argument('band', type=click.Choice(BAND_NAMES))
+@click.pass_obj
+@clear_first
+def band_squelch_state(ctx, band):
+    '''Report whether squelch is open on the specified band'''
+
+    band = normalize_band(band)
+    res = ctx.api.get_band_squelch_state(band)
+    print(res[1])
+
+
+@band.command('reverse')
+@click.argument('band', type=click.Choice(BAND_NAMES))
+@click.option('--on/--off', 'reverse', default=None)
+@click.pass_obj
+@clear_first
+def band_reverse(ctx, band, reverse):
+    '''Activate reverse on the specified band'''
+
+    band = normalize_band(band)
+    if reverse is None:
+        res = ctx.api.get_band_reverse(band)
+    else:
+        reverse = 1 if reverse else 0
+        res = ctx.api.set_band_reverse(band, reverse)
+
+    print(res[1])
 
 
 @band.command('mode')
@@ -583,6 +655,16 @@ def firmware(ctx):
     '''Return information about the radio firmware.'''
 
     res = ctx.api.radio_firmware()
+    print(*res)
+
+
+@info.command()
+@click.pass_obj
+@clear_first
+def serial(ctx):
+    '''Return information about the radio firmware.'''
+
+    res = ctx.api.radio_serial()
     print(*res)
 
 # ----------------------------------------------------------------------
