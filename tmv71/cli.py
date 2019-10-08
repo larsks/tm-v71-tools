@@ -8,6 +8,7 @@ import os
 import shlex
 import sys
 import tabulate
+import time
 
 from tmv71 import __version__
 from tmv71 import api
@@ -275,13 +276,22 @@ def lock(ctx, lock_state):
 
 
 @main.command()
+@click.option('-w', '--wait', is_flag=True)
 @click.argument('tones', nargs=-1)
 @click.pass_obj
 @clear_first
-def send_dtmf(ctx, tones):
+def send_dtmf(ctx, wait, tones):
     '''Send DTMF tones'''
 
     tones = ''.join(tones).replace(' ', '')
+    if wait:
+        band_state = ctx.api.get_ptt_ctrl_band()
+        ptt_band = band_state['ptt_band']
+        LOG.debug('current ptt band is %s', ptt_band)
+        while ctx.api.get_band_squelch_state(ptt_band) == 1:
+            LOG.debug('waiting until band %s is not busy', ptt_band)
+            time.sleep(0.5)
+
     with ctx.api.ptt():
         ctx.api.send_dtmf(tones)
 
@@ -303,7 +313,6 @@ def band_squelch(ctx, band):
 
     band = normalize_band(band)
     res = ctx.api.get_band_squelch(band)
-    res = int(res[0], 16)
     print(res)
 
 
@@ -316,7 +325,7 @@ def band_squelch_state(ctx, band):
 
     band = normalize_band(band)
     res = ctx.api.get_band_squelch_state(band)
-    print(res[1])
+    print(res)
 
 
 @band.command('reverse')
@@ -394,7 +403,7 @@ def band_select(ctx, band, which, mode):
     if which and mode:
         raise click.ClickException('-1/-2 and -c/-p are mutually exclusive')
 
-    control_band, ptt_band = ctx.api.get_ptt_ctrl_band()
+    cur_state = ctx.api.get_ptt_ctrl_band()
     cur_mode = ctx.api.get_dual_band_mode()
 
     if mode == 2:
@@ -404,22 +413,19 @@ def band_select(ctx, band, which, mode):
 
         if mode:
             if mode == 1:
-                control_band = ptt_band = band
+                cur_state['ctrl_band'] = cur_state['ptt_band'] = band
                 cur_mode = ctx.api.set_single_band_mode()
         else:
             if which == 'control':
-                control_band = band
+                cur_state['ctrl_band'] = band
             elif which == 'ptt':
-                ptt_band = band
+                cur_state['ptt_band'] = band
             else:
-                control_band = ptt_band = band
+                cur_state['ctrl_band'] = cur_state['ptt_band'] = band
 
-        control_band, ptt_band = ctx.api.set_ptt_ctrl_band(
-            control_band, ptt_band)
+        cur_state = ctx.api.set_ptt_ctrl_band(**cur_state)
 
-    return dict(control=BAND_NAMES[control_band],
-                ptt=BAND_NAMES[ptt_band],
-                mode=['dual', 'single'][cur_mode])
+    return dict(mode=['dual', 'single'][cur_mode], **cur_state)
 
 
 @band.command()

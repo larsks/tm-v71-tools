@@ -212,12 +212,12 @@ class TMV71:
     def get_band_squelch(self, band):
         '''Return the squelch setting for the given band'''
 
-        return self.send_command('SQ', band)
+        return int(self.send_command('SQ', band)[0], 16)
 
     def get_band_squelch_state(self, band):
         '''Return the squelch setting for the given band'''
 
-        return self.send_command('BY', band)
+        return int(self.send_command('BY', band)[1])
 
     def get_band_reverse(self, band):
         '''Return the state of reverse mode for the given band'''
@@ -260,12 +260,11 @@ class TMV71:
         return self.send_command('MR', band, channel)
 
     def get_ptt_ctrl_band(self):
-        return [int(x)
-                for x in self.send_command('BC')]
+        return schema.BC.from_tuple(self.send_command('BC'))
 
     def set_ptt_ctrl_band(self, ctrl_band, ptt_band):
-        return [int(x)
-                for x in self.send_command('BC', ctrl_band, ptt_band)]
+        return schema.BC.from_tuple(
+            self.send_command('BC', ctrl_band, ptt_band))
 
     def set_ptt(self, ptt_state):
         if ptt_state:

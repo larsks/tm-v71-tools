@@ -353,6 +353,11 @@ class TY_Schema(RadioSchema):
     skycommand = Integer()
 
 
+class BC_Schema(RadioSchema):
+    ctrl_band = Integer()
+    ptt_band = Integer()
+
+
 # 0,4,0,1,0,4,1,0,10,0,0,0,0,0,0,2,0,0,0,0,2,0,1,0,0,8,0,0,00,02,14,0D,0C,15,0,0,0,0,0,4,1,1
 class MU_Schema(RadioSchema):
     beep = RadioBoolean(required=True)
