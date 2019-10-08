@@ -38,11 +38,11 @@ STEP_SIZE = [
 ]
 
 TONE_FREQUENCY = [
-    67,
+    67.0,
     69.3,
     71.9,
     74.4,
-    77,
+    77.0,
     79.7,
     82.5,
     85.4,
@@ -50,13 +50,13 @@ TONE_FREQUENCY = [
     91.5,
     94.8,
     97.4,
-    100,
+    100.0,
     103.5,
     107.2,
     110.9,
     114.8,
     118.8,
-    123,
+    123.0,
     127.3,
     131.8,
     136.5,
@@ -82,7 +82,7 @@ TONE_FREQUENCY = [
     254.1,
 ]
 
-DCS_FREQUENCY = [
+DCS_CODE = [
     23,
     25,
     26,
@@ -241,17 +241,25 @@ class RadioSchema(Schema):
 
 
 class Indexed(Field):
-    def __init__(self, values, fmt='{}', int_base=10, **kwargs):
+    def __init__(self, values, fmt='{}', int_base=10, type=None, **kwargs):
         super().__init__(**kwargs)
         self.values = values
         self.fmt = fmt
         self.int_base = int_base
+        self.type = type
 
     def _serialize(self, value, attr, obj, **kwargs):
+        if self.type is not None:
+            value = self.type(value)
+
         return self.fmt.format(self.values.index(value))
 
     def _deserialize(self, value, attr, data, **kwargs):
-        return self.values[int(value, self.int_base)]
+        res = self.values[int(value, self.int_base)]
+        if self.type is not None:
+            res = self.type(res)
+
+        return res
 
 
 class RadioFloat(Float):
@@ -293,9 +301,9 @@ class ME_Schema(RadioSchema):
     tone_status = RadioBoolean(required=True)
     ctcss_status = RadioBoolean(required=True)
     dcs_status = RadioBoolean(required=True)
-    tone_freq = Indexed(values=TONE_FREQUENCY, required=True)
-    ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True)
-    dcs_freq = Indexed(values=DCS_FREQUENCY, required=True, fmt='{:03d}')
+    tone_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float)
+    ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float)
+    dcs_code = Indexed(values=DCS_CODE, required=True, fmt='{:03d}', type=int)
     offset = RadioFloat(length=8, required=True)
     mode = Indexed(MODE, required=True)
     tx_freq = RadioFloat(required=True)
@@ -312,9 +320,9 @@ class FO_Schema(RadioSchema):
     tone_status = RadioBoolean(required=True)
     ctcss_status = RadioBoolean(required=True)
     dcs_status = RadioBoolean(required=True)
-    tone_freq = Indexed(values=TONE_FREQUENCY, required=True)
-    ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True)
-    dcs_freq = Indexed(values=DCS_FREQUENCY, required=True)
+    tone_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float)
+    ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float)
+    dcs_code = Indexed(values=DCS_CODE, required=True, type=int)
     offset = RadioFloat(length=8, required=True)
     mode = Indexed(MODE, required=True)
 
@@ -328,9 +336,9 @@ class CC_Schema(RadioSchema):
     tone_status = RadioBoolean(required=True)
     ctcss_status = RadioBoolean(required=True)
     dcs_status = RadioBoolean(required=True)
-    tone_freq = Indexed(values=TONE_FREQUENCY, required=True)
-    ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True)
-    dcs_freq = Indexed(values=DCS_FREQUENCY, required=True)
+    tone_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float)
+    ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float)
+    dcs_code = Indexed(values=DCS_CODE, required=True, type=int)
     offset = RadioFloat(length=8, required=True)
     mode = Indexed(MODE, required=True)
     tx_freq = RadioFloat(required=True)

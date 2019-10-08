@@ -136,7 +136,7 @@ class TestApi:
             'dcs_status': False,
             'tone_freq': 146.2,
             'ctcss_freq': 146.2,
-            'dcs_freq': 23,
+            'dcs_code': 23,
             'offset': 0.6,
             'mode': 'FM',
             'tx_freq': 0.0,
