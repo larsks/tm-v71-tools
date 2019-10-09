@@ -298,22 +298,24 @@ class TMV71:
         finally:
             self.set_ptt(False)
 
-    dtmf_time_tone = 0.250
+    dtmf_tone_slow = 0.250
+    dtmf_tone_fast = 0.040
 
-    def send_dtmf(self, tones):
+    def send_dtmf(self, tones, fast=False):
         '''Send a series of DTMF tones.
 
-        This will send each tone for self.dtmf_time_tone seconds
-        (default 0.250). When sending tones there are no "spaces"
-        between tones. This appears to be a limitation of the
-        underlying `DT` command.
+        This will send each tone for <delay> seconds (default 0.250).
+        When sending tones there are no "spaces" between tones. This
+        appears to be a limitation of the underlying `DT` command.
         '''
 
-        time.sleep(self.dtmf_time_tone)
+        delay = self.dtmf_tone_fast if fast else self.dtmf_tone_slow
+
+        time.sleep(delay)
         for tone in tones:
             self.send_command('DT', 0, '{:X}'.format(
                 DTMF_TONES.index(tone.upper())))
-            time.sleep(self.dtmf_time_tone)
+            time.sleep(delay)
 
     @bandcommand
     def get_band_mode(self, band):

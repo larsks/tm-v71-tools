@@ -277,10 +277,11 @@ def lock(ctx, lock_state):
 
 @main.command()
 @click.option('-w', '--wait', is_flag=True)
+@click.option('--slow/--fast', 'fast')
 @click.argument('tones', nargs=-1)
 @click.pass_obj
 @clear_first
-def send_dtmf(ctx, wait, tones):
+def send_dtmf(ctx, wait, fast, tones):
     '''Send DTMF tones'''
 
     tones = ''.join(tones).replace(' ', '')
@@ -294,7 +295,7 @@ def send_dtmf(ctx, wait, tones):
             time.sleep(0.5)
 
     with ctx.api.ptt():
-        ctx.api.send_dtmf(tones)
+        ctx.api.send_dtmf(tones, fast)
 
 # ----------------------------------------------------------------------
 
