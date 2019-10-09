@@ -34,11 +34,11 @@ class UnknownDeviceError(CommunicationError):
 
 
 class UnknownCommandError(CommunicationError):
-    '''The radio did not recognize the given command: {}'''
+    '''The radio did not recognize the "{}" command'''
 
 
 class InvalidCommandError(CommunicationError):
-    '''The radio was unable to execute the given command'''
+    '''The radio was unable to execute the "{}" command'''
 
 
 class UnexpectedResponseError(CommunicationError):
@@ -422,7 +422,7 @@ class TMV71:
         elif band == 1:
             address = M_OFFSET_BANDB_BAND
         else:
-            raise ValueError('invalid band')
+            raise ValueError('invalid band: {}'.format(band))
 
         res = self.read_block(address, 1)
         res = int.from_bytes(res, byteorder=sys.byteorder)
@@ -446,7 +446,7 @@ class TMV71:
         elif band == 1:
             address = M_OFFSET_BANDB_BAND
         else:
-            raise ValueError('invalid band')
+            raise ValueError('invalid band: {}'.format(band))
 
         self.write_block(address, bytes([freq_band]))
 
@@ -587,7 +587,7 @@ class TMV71:
                 LOG.warning('Radio does not contain expected '
                             'data (continuing)')
             else:
-                raise ValueError('Radio does not contain expected data')
+                raise ValueError('radio does not contain expected data')
 
         # Check that input data seems sane
         data = fd.read(4)
@@ -596,7 +596,7 @@ class TMV71:
                 LOG.warning('Input does not contain expected '
                             'data (continuing)')
             else:
-                raise ValueError('Input does not contain expected data')
+                raise ValueError('input does not contain expected data')
 
         self.write_block(0, b'\xff')
 

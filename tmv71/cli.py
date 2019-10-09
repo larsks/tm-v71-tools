@@ -140,6 +140,9 @@ class ApplicationSettings:
     verbose = 0
 
 
+SETTINGS = ApplicationSettings()
+
+
 class ApplicationContext:
     '''Store settings and global state for the cli'''
 
@@ -160,10 +163,11 @@ def safe_main():
 
     try:
         main()
-    except api.CommunicationError as e:
-        LOG.error('%s', e)
-    except ValueError as e:
-        LOG.error('Bad value: %s', e)
+    except Exception as e:
+        if SETTINGS.verbose > 1:
+            raise
+        else:
+            LOG.error('%s', e)
     else:
         res = 0
 
@@ -188,7 +192,7 @@ def safe_main():
               help='Increase verbosity. May be specified multiple times.')
 @click.pass_context
 def main(ctx, config_file, no_config, **kwargs):
-    settings = ApplicationSettings()
+    global SETTINGS
 
     # Override default settings with settings from configuration file
     if not no_config:
@@ -197,7 +201,7 @@ def main(ctx, config_file, no_config, **kwargs):
                 conf = json.load(fd)
             LOG.info('loaded configuration from %s', config_file)
             for k, v in conf.items():
-                setattr(settings, k, v)
+                setattr(SETTINGS, k, v)
         except IOError:
             pass
 
@@ -205,16 +209,16 @@ def main(ctx, config_file, no_config, **kwargs):
     # command line
     for k, v in kwargs.items():
         if v is not None:
-            setattr(settings, k, v)
+            setattr(SETTINGS, k, v)
 
     try:
-        loglevel = ['WARNING', 'INFO', 'DEBUG'][settings.verbose]
+        loglevel = ['WARNING', 'INFO', 'DEBUG'][SETTINGS.verbose]
     except IndexError:
         loglevel = 'DEBUG'
 
     logging.basicConfig(level=loglevel)
 
-    ctx.obj = ApplicationContext(settings)
+    ctx.obj = ApplicationContext(SETTINGS)
 
 
 @main.command()
