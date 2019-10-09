@@ -40,6 +40,9 @@ class FakeSerialPort:
         acc = []
         while True:
             res = self.read()
+            if not res:
+                break
+
             acc.append(res)
             if res == terminator or (size is not None and len(acc) >= size):
                 break

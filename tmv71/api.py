@@ -106,6 +106,7 @@ class TMV71:
         self.debug = debug
         self.timeout = timeout
         self._programming_mode = False
+        self._ptt = False
         self.init_serial()
 
     def __repr__(self):
@@ -303,8 +304,10 @@ class TMV71:
 
     def set_ptt(self, ptt_state):
         if ptt_state:
+            self._ptt = True
             return self.send_command('TX')
         else:
+            self._ptt = False
             return self.send_command('RX')
 
     @contextmanager
@@ -411,7 +414,8 @@ class TMV71:
     @pm
     def get_port_speed(self):
         speed = self.read_block(M_OFFSET_PORT_SPEED, 1)
-        return PORT_SPEED[int.from_bytes(speed, byteorder='big')]
+        speed = struct.unpack('B', speed)[0]
+        return PORT_SPEED[speed]
 
     @pm
     def set_port_speed(self, speed):
@@ -428,7 +432,7 @@ class TMV71:
             raise ValueError('invalid band: {}'.format(band))
 
         res = self.read_block(address, 1)
-        res = int.from_bytes(res, byteorder=sys.byteorder)
+        res = struct.unpack('B', res)[0]
 
         # The constants in FREQUENCY_BAND are correct for band A, but
         # for band B we need to add 4 to the value.
@@ -521,6 +525,7 @@ class TMV71:
         for expected in [b'\x06', b'\r', b'\x00']:
             res = self.read_bytes(1)
             if res != expected:
+                breakpoint()
                 raise UnexpectedResponseError()
 
     @pm

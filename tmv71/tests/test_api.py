@@ -1,5 +1,6 @@
 import io
 import pytest
+import struct
 
 from tmv71 import api
 
@@ -12,6 +13,7 @@ def radio(serial):
 
 def test_create_api_object(radio):
     assert radio.port == 'dummy'
+    assert repr(radio) == '<TMV71 on dummy @ 0>'
 
 
 def test_clear(radio):
@@ -166,3 +168,83 @@ def test_memory_restore_short_data(radio):
     with radio.programming_mode():
         with pytest.raises(EOFError):
             radio.memory_restore(fd)
+
+
+def test_ptt_context(radio):
+    radio._port.stuff(b'TX 1\r')
+    radio._port.stuff(b'RX 1\r')
+
+    assert not radio._ptt
+    with radio.ptt():
+        assert radio._ptt
+
+    assert radio._port.rx.getvalue() == b'TX\rRX\r'
+
+
+def test_get_frequency_band(radio):
+    offset = api.M_OFFSET_BANDA_BAND
+    radio._port.stuff(b'0M\rW')
+    radio._port.stuff(struct.pack('>HB', offset, 1))
+    radio._port.stuff(struct.pack('B', 1))
+    radio._port.stuff(b'\x06\x06\r\x00')
+
+    with radio.programming_mode():
+        res = radio.get_frequency_band(0)
+
+    expected = b'R' + struct.pack('>HB', offset, 1)
+    assert expected in radio._port.rx.getvalue()
+    assert res == api.FREQUENCY_BAND[1]
+
+
+def test_set_frequency_band(radio):
+    offset = api.M_OFFSET_BANDA_BAND
+    radio._port.stuff(b'0M\r')
+    radio._port.stuff(b'\x06\x06\r\x00')
+
+    with radio.programming_mode():
+        radio.set_frequency_band(0, '430')
+
+    index = api.FREQUENCY_BAND.index('430')
+    expected = b'W' + struct.pack('>HBB', offset, 1, index)
+    assert expected in radio._port.rx.getvalue()
+
+
+def test_get_tx_power(radio):
+    radio._port.stuff(b'PC 0,1\r')
+    res = radio.get_tx_power(0)
+    assert res == 1
+
+
+def test_set_tx_power(radio):
+    radio._port.stuff(b'PC 0,2\r')
+    res = radio.set_tx_power(0, 2)
+    assert res == 2
+
+
+def test_read_bytes_timeout(radio):
+    with pytest.raises(api.ReadTimeoutError):
+        radio.read_bytes(1)
+
+
+def test_unknown_command(radio):
+    radio._port.stuff(b'?\r')
+    with pytest.raises(api.UnknownCommandError):
+        radio.radio_id()
+
+
+def test_invalid_command(radio):
+    radio._port.stuff(b'N\r')
+    with pytest.raises(api.InvalidCommandError):
+        radio.radio_id()
+
+
+def test_unexpected_response(radio):
+    radio._port.stuff(b'DUMMY\r')
+    with pytest.raises(api.UnexpectedResponseError):
+        radio.radio_id()
+
+
+def test_send_dtmf(radio):
+    radio._port.stuff(b'DT\rDT\r')
+    radio.send_dtmf('12')
+    assert b'DT 0,1\rDT 0,2\r' in radio._port.rx.getvalue()
