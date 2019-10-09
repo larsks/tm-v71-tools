@@ -526,7 +526,6 @@ class TMV71:
         for expected in [b'\x06', b'\r', b'\x00']:
             res = self.read_bytes(1)
             if res != expected:
-                breakpoint()
                 raise UnexpectedResponseError()
 
     @pm
@@ -534,8 +533,14 @@ class TMV71:
         '''Read data from the radio'''
 
         LOG.debug('read address %d, size %d', address, size)
-        self.write_bytes(struct.pack('>BHB', ord('R'), address, size))
-        self.read_bytes(4)
+
+        args = struct.pack('>HB', address, size)
+
+        self.write_bytes(b'R' + args)
+        res = self.read_bytes(4)
+        if res != b'W' + args:
+            raise UnexpectedResponseError(res)
+
         data = self.read_bytes(size if size else 256)
         self.write_bytes(bytes([6]))
         self.check_ack()
