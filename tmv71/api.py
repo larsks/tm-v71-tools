@@ -236,6 +236,7 @@ class TMV71:
 
         return self.send_command('AE')
 
+    @schemacommand(schema.FV)
     def radio_firmware(self):
         return self.send_command('FV', 0)
 

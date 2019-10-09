@@ -105,3 +105,11 @@ def test_memory_write_block(runner, serial, environ):
         ['memory', 'write-block', '0', '-d', expected_hex])
     assert res.exit_code == 0
     assert expected in serial.rx.getvalue()
+
+
+def test_info_firmware(runner, serial, environ):
+    serial.stuff(b'FV 0,1.0,2.0,A,1\r')
+    res = runner.invoke(cli.main, ['info', 'firmware', '-F', 'json'])
+    assert res.exit_code == 0
+    data = json.loads(res.output)
+    assert data == dict(unit=0, v1='1.0', v2='2.0', v3='A', v4='1')

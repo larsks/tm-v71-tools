@@ -724,13 +724,14 @@ def radio_type(ctx):
 
 
 @info.command()
+@formatted
 @click.pass_obj
 @clear_first
 def firmware(ctx):
     '''Return information about the radio firmware.'''
 
     res = ctx.api.radio_firmware()
-    print(*res)
+    return res
 
 
 @info.command()
