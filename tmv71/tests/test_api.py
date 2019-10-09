@@ -75,12 +75,14 @@ def test_radio_type(radio, serial):
 
 
 def test_get_port_speed(radio, serial):
-    serial.stuff(b'0M\rW\x00\x00\x04\x03')
+    args = struct.pack('>HB', api.M_OFFSET_PORT_SPEED, 1)
+    serial.stuff(b'0M\r')
+    serial.stuff(b'W' + args + b'\x00')
     serial.stuff(b'\x06\x06\r\x00')
 
     with radio.programming_mode():
         res = radio.get_port_speed()
-        assert res == '57600'
+        assert res == '9600'
 
 
 def test_set_port_speed(radio, serial):
@@ -130,6 +132,25 @@ def test_set_channel_entry(radio, serial):
         b'ME 000\rME 000,0145430000,0,1,1,0,1,0,23,'
         b'23,000,00600000,0,0000000000,0,1\r'
     )
+
+
+def test_memory_dump(radio, serial):
+    serial.stuff(b'0M\r')
+
+    def blockmaker(start=0x0):
+        addr = start
+        while True:
+            args = struct.pack('>HB', addr, 0)
+            yield b'W' + args
+            yield b'\x00' * 255
+            yield b'\x06'
+            addr += 256
+
+    buf = io.BytesIO()
+    with radio.programming_mode():
+        with serial.tx_from_iter(blockmaker()):
+            radio.memory_dump(buf)
+        serial.stuff(b'\x06\r\x00')
 
 
 def test_memory_restore(radio, serial):

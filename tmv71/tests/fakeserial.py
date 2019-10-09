@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import io
 from unittest import mock
 
@@ -13,14 +14,24 @@ class FakeSerialPort:
         self.name = port
         self.rx = io.BytesIO()
         self.tx = io.BytesIO()
-        self.exc = None
         self.kwargs = kwargs
+
+        self._exc = None
+        self._producer = None
 
         if register:
             self.ports[self.name] = self
 
     def raise_next_read(self, exc):
-        self.exc = exc
+        self._exc = exc
+
+    @contextmanager
+    def tx_from_iter(self, producer):
+        try:
+            self._producer = producer
+            yield
+        finally:
+            self._producer = None
 
     def stuff(self, data):
         pos = self.tx.tell()
@@ -29,12 +40,16 @@ class FakeSerialPort:
         self.tx.seek(pos)
 
     def read(self, size=1):
-        if self.exc is not None:
-            exc = self.exc
-            self.exc = None
+        if self._exc is not None:
+            exc = self._exc
+            self._exc = None
             raise exc()
 
-        data = self.tx.read(size)
+        if self._producer:
+            data = next(self._producer)
+        else:
+            data = self.tx.read(size)
+
         return data
 
     def read_until(self, terminator=b'\n', size=None):
