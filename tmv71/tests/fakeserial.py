@@ -8,18 +8,12 @@ class FakeSerialPort:
     def register(cls, port):
         cls.ports[port.name] = port
 
-    def __new__(cls, port, **kwargs):
-        return cls.ports.get(port,
-                             super().__new__(cls))
-
     def __init__(self, port, register=False, **kwargs):
-        if hasattr(self, 'name'):
-            return
-
         self.name = port
         self.rx = io.BytesIO()
         self.tx = io.BytesIO()
         self.exc = None
+        self.kwargs = kwargs
 
         if register:
             self.ports[self.name] = self
@@ -60,3 +54,15 @@ class FakeSerialPort:
         self.tx.truncate(0)
         self.tx.seek(0)
         self.rx.seek(0)
+
+    def open(self):
+        pass
+
+    def close(self):
+        pass
+
+
+def FakeSerialPortFactory(name, *args, **kwargs):
+    return FakeSerialPort.ports.get(name,
+                                    FakeSerialPort(name, *args,
+                                                   **kwargs))
