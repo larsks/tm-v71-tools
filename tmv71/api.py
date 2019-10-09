@@ -30,7 +30,7 @@ class CommunicationError(Exception):
 
 
 class UnknownDeviceError(CommunicationError):
-    '''Unknown device'''
+    '''Unknown device: {}'''
 
 
 class UnknownCommandError(CommunicationError):
@@ -96,6 +96,10 @@ def pm(f):
 
 
 class TMV71:
+    expected_id = 'TM-V71'
+    memory_max = 0x7f
+    memory_magic = struct.pack('BBBB', 0x0, 0x4b, 0x01, 0xff)
+
     def __init__(self, port, speed=9600, debug=False, timeout=0.5):
         self.port = port
         self.speed = speed
@@ -208,17 +212,16 @@ class TMV71:
         if res != b'?':
             raise UnexpectedResponseError()
 
-    def check_id(self, expected='TM-V71'):
+    def check_id(self):
         res = self.radio_id()
-        LOG.debug('verify device id: wanted %s, got %s', expected, res[0])
-        if res[0] != expected:
-            raise UnknownDeviceError(res[0])
-
-        return res
+        LOG.debug('check_id: wanted %s, got %s',
+                  self.expected_id, res)
+        if res != self.expected_id:
+            raise UnknownDeviceError(res)
 
     def radio_id(self):
         '''Return the radio ID'''
-        return self.send_command('ID')
+        return self.send_command('ID')[0]
 
     @schemacommand(schema.TY)
     def radio_type(self):
@@ -561,13 +564,11 @@ class TMV71:
     def memory_dump(self, fd):
         '''Read data from the radio and write it to a file-like object.'''
 
-        for block in range(0x7F):
+        for block in range(self.memory_max):
             addr = block * 256
             LOG.debug('reading block %d', block)
             data = self.read_block(addr, 0)
             fd.write(data)
-
-    memory_magic = struct.pack('BBBB', 0x0, 0x4b, 0x01, 0xff)
 
     @pm
     def memory_restore(self, fd, force=False):
@@ -603,7 +604,7 @@ class TMV71:
         fd.seek(4)
         self.write_block(0x04, fd.read(0xfc))
 
-        for block in range(1, 0x7F):
+        for block in range(1, self.memory_max):
             addr = block * 256
             LOG.debug('writing block %d', block)
             data = fd.read(256)
@@ -614,3 +615,9 @@ class TMV71:
         self.write_block(0, self.memory_magic)
 
     # ----------------------------------------------------------------------
+
+
+class TMD710(TMV71):
+    expected_id = 'TM-D710'
+    memory_magic = struct.pack('BBBB', 0x0, 0x4D, 0x01, 0xff)
+    memory_max = 0xFF

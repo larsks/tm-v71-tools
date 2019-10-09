@@ -25,7 +25,18 @@ def test_radio_id(radio):
     check = radio.radio_id()
 
     assert radio._port.rx.getvalue().endswith(b'ID\r')
-    assert check == ['DUMMY']
+    assert check == 'DUMMY'
+
+
+def test_check_id_success(radio):
+    radio._port.stuff(b'ID TM-V71\r')
+    radio.check_id()
+
+
+def test_check_id_failure(radio):
+    radio._port.stuff(b'ID DUMMY\r')
+    with pytest.raises(api.UnknownDeviceError):
+        radio.check_id()
 
 
 def test_programming_mode(radio):

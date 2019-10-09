@@ -709,7 +709,7 @@ def radio_id(ctx):
     '''Return the radio model.'''
 
     res = ctx.api.radio_id()
-    print(res[0])
+    print(res)
 
 
 @info.command('type')
