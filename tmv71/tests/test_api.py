@@ -135,22 +135,23 @@ def test_set_channel_entry(radio, serial):
 
 
 def test_memory_dump(radio, serial):
-    serial.stuff(b'0M\r')
-
     def blockmaker(start=0x0):
         addr = start
         while True:
             args = struct.pack('>HB', addr, 0)
             yield b'W' + args
-            yield b'\x00' * 255
+            yield b'\x00' * 256
             yield b'\x06'
             addr += 256
 
     buf = io.BytesIO()
+    serial.stuff(b'0M\r')
     with radio.programming_mode():
         with serial.tx_from_iter(blockmaker()):
             radio.memory_dump(buf)
         serial.stuff(b'\x06\r\x00')
+
+    assert buf.tell() == (radio.memory_max * 256)
 
 
 def test_memory_restore(radio, serial):
@@ -203,19 +204,35 @@ def test_ptt_context(radio, serial):
     assert serial.rx.getvalue() == b'TX\rRX\r'
 
 
-def test_get_frequency_band(radio, serial):
-    offset = api.M_OFFSET_BANDA_BAND
+@pytest.mark.parametrize('band', [0, 1])
+def test_get_frequency_band(radio, serial, band):
+    val = api.FREQUENCY_BAND.index('144')
+    if band == 0:
+        offset = api.M_OFFSET_BANDA_BAND
+        val_adjusted = val
+    else:
+        offset = api.M_OFFSET_BANDB_BAND
+        val_adjusted = val + 4
+
     serial.stuff(b'0M\rW')
     serial.stuff(struct.pack('>HB', offset, 1))
-    serial.stuff(struct.pack('B', 1))
+    serial.stuff(struct.pack('B', val_adjusted))
     serial.stuff(b'\x06\x06\r\x00')
 
     with radio.programming_mode():
-        res = radio.get_frequency_band(0)
+        res = radio.get_frequency_band(band)
 
     expected = b'R' + struct.pack('>HB', offset, 1)
     assert expected in serial.rx.getvalue()
-    assert res == api.FREQUENCY_BAND[1]
+    assert res == api.FREQUENCY_BAND[val]
+
+
+def test_get_frequency_band_invalid(radio, serial):
+    serial.stuff(b'0M\r')
+    serial.stuff(b'\x06\r\x00')
+    with radio.programming_mode():
+        with pytest.raises(ValueError):
+            radio.get_frequency_band(2)
 
 
 def test_set_frequency_band(radio, serial):
