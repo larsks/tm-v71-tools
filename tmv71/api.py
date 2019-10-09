@@ -53,6 +53,19 @@ class WrongModeError(CommunicationError):
     '''Radio is not in programming mode'''
 
 
+def schemacommand(schema):
+
+    def decorator(f):
+
+        @wraps(f)
+        def inner(*args, **kwargs):
+            return schema.from_tuple(f(*args, **kwargs))
+
+        return inner
+
+    return decorator
+
+
 def bandcommand(f):
     '''A decorator for commands that have (band, value) results'''
 
@@ -207,15 +220,17 @@ class TMV71:
         '''Return the radio ID'''
         return self.send_command('ID')
 
+    @schemacommand(schema.TY)
     def radio_type(self):
         '''Return the radio type (K for the US, M for Europe)'''
 
-        return schema.TY.from_tuple(self.send_command('TY'))
+        return self.send_command('TY')
 
+    @schemacommand(schema.AE)
     def radio_serial(self):
         '''Return the radio serial number'''
 
-        return schema.AE.from_tuple(self.send_command('AE'))
+        return self.send_command('AE')
 
     def radio_firmware(self):
         return self.send_command('FV', 0)
@@ -275,12 +290,13 @@ class TMV71:
         channel = '{:03d}'.format(channel)
         return self.send_command('MR', band, channel)
 
+    @schemacommand(schema.BC)
     def get_ptt_ctrl_band(self):
-        return schema.BC.from_tuple(self.send_command('BC'))
+        return self.send_command('BC')
 
+    @schemacommand(schema.BC)
     def set_ptt_ctrl_band(self, ctrl_band, ptt_band):
-        return schema.BC.from_tuple(
-            self.send_command('BC', ctrl_band, ptt_band))
+        return self.send_command('BC', ctrl_band, ptt_band)
 
     def set_ptt(self, ptt_state):
         if ptt_state:
@@ -333,21 +349,21 @@ class TMV71:
     def set_tx_power(self, band, power):
         return self.send_command('PC', band, power)
 
+    @schemacommand(schema.FO)
     def get_band_vfo(self, band):
         band = schema.BANDS.index(band)
-        return schema.FO.from_tuple(
-            self.send_command('FO', band))
+        return self.send_command('FO', band)
 
+    @schemacommand(schema.FO)
     def set_band_vfo(self, band, settings):
         settings['band'] = band
         band = schema.BANDS.index(band)
-        return schema.FO.from_tuple(
-            self.send_command('FO', schema.FO.to_csv(settings)))
+        return self.send_command('FO', schema.FO.to_csv(settings))
 
+    @schemacommand(schema.ME)
     def get_channel_entry(self, channel):
         channel = '{:03d}'.format(channel)
-        res = schema.ME.from_tuple(self.send_command('ME', channel))
-        return res
+        return self.send_command('ME', channel)
 
     def set_channel_entry(self, channel, settings):
         settings[channel] = channel
@@ -370,12 +386,13 @@ class TMV71:
         res = self.send_command('MN', channel, name)
         return res[1]
 
+    @schemacommand(schema.MU)
     def get_radio_config(self):
-        return schema.MU.from_tuple(self.send_command('MU'))
+        return self.send_command('MU')
 
+    @schemacommand(schema.MU)
     def set_radio_config(self, settings):
-        return schema.MU.from_tuple(
-            self.send_command('MU', schema.MU.to_csv(settings)))
+        return self.send_command('MU', schema.MU.to_csv(settings))
 
     # ----------------------------------------------------------------------
 
