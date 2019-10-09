@@ -1,4 +1,5 @@
 import io
+from unittest import mock
 
 
 class FakeSerialPort:
@@ -58,11 +59,8 @@ class FakeSerialPort:
         self.tx.seek(0)
         self.rx.seek(0)
 
-    def open(self):
-        pass
-
-    def close(self):
-        pass
+    open = mock.Mock()
+    close = mock.Mock()
 
 
 def FakeSerialPortFactory(name, *args, **kwargs):

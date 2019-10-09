@@ -265,17 +265,17 @@ class TMV71:
 
     def get_lock_state(self):
         '''Get the current state of the key lock'''
-        return self.send_command('LK')
+        return bool(self.send_command('LK')[0])
 
     def set_lock_state(self, lock_state):
         '''Set the current state of the key lock'''
-        return self.send_command('LK', 1 if lock_state else 0)
+        return bool(self.send_command('LK', 1 if lock_state else 0)[0])
 
     def get_poweron_message(self):
-        return self.send_command('MS')
+        return self.send_command('MS')[0]
 
     def set_poweron_message(self, msg):
-        return self.send_command('MS', msg)
+        return self.send_command('MS', msg)[0]
 
     def get_dual_band_mode(self):
         return int(self.send_command('DL')[0])

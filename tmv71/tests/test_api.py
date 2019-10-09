@@ -251,8 +251,95 @@ def test_send_dtmf(radio, serial):
     assert b'DT 0,1\rDT 0,2\r' in serial.rx.getvalue()
 
 
+def test_radio_serial(radio, serial):
+    serial.stuff(b'AE 12345,321\r')
+    res = radio.radio_serial()
+
+    assert res == dict(serial='12345', extra='321')
+
+
 def test_radio_firmware(radio, serial):
     serial.stuff(b'FV 0,1.0,2.0,A,1\r')
     res = radio.radio_firmware()
 
     assert res == dict(unit=0, v1='1.0', v2='2.0', v3='A', v4='1')
+
+
+def test_get_band_squelch(radio, serial):
+    serial.stuff(b'SQ 0A\r')
+    res = radio.get_band_squelch(0)
+
+    assert res == 0x0A
+    assert b'SQ 0\r' in serial.rx.getvalue()
+
+
+def test_get_band_squelch_state(radio, serial):
+    serial.stuff(b'BY 0,0\r')
+    res = radio.get_band_squelch_state(0)
+
+    assert res == 0
+    assert b'BY 0\r' in serial.rx.getvalue()
+
+
+def test_reopen(radio, serial):
+    radio.reopen()
+    serial.close.assert_called()
+    serial.open.assert_called()
+
+
+def test_get_band_reverse(radio, serial):
+    serial.stuff(b'AS 0,1\r')
+    res = radio.get_band_reverse(0)
+
+    assert res == 1
+    assert b'AS 0\r' in serial.rx.getvalue()
+
+
+def test_set_band_reverse(radio, serial):
+    serial.stuff(b'AS 0,1\r')
+    res = radio.set_band_reverse(0, 1)
+
+    assert res == 1
+    assert b'AS 0,1\r' in serial.rx.getvalue()
+
+
+def test_get_lock_state(radio, serial):
+    serial.stuff(b'LK 1\r')
+    res = radio.get_lock_state()
+    assert res == 1
+    assert b'LK\r' in serial.rx.getvalue()
+
+
+def test_set_lock_state(radio, serial):
+    serial.stuff(b'LK 1\r')
+    res = radio.set_lock_state(True)
+    assert res == 1
+    assert b'LK 1\r' in serial.rx.getvalue()
+
+
+def test_get_band_mode(radio, serial):
+    serial.stuff(b'VM 0,0\r')
+    res = radio.get_band_mode(0)
+    assert res == 0
+    assert b'VM 0\r' in serial.rx.getvalue()
+
+
+def test_set_band_mode(radio, serial):
+    serial.stuff(b'VM 0,1\r')
+    res = radio.set_band_mode(0, 1)
+    assert res == 1
+    assert b'VM 0,1\r' in serial.rx.getvalue()
+
+
+def test_get_poweron_message(radio, serial):
+    serial.stuff(b'MS DUMMY\r')
+    res = radio.get_poweron_message()
+    assert res == 'DUMMY'
+    assert b'MS\r' in serial.rx.getvalue()
+
+
+def test_set_poweron_message(radio, serial):
+    serial.stuff(b'MS DUMMY\r')
+    res = radio.set_poweron_message('DUMMY')
+    assert res == 'DUMMY'
+    assert b'MS DUMMY\r' in serial.rx.getvalue()
