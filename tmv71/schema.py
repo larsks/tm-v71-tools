@@ -328,7 +328,7 @@ class FO_Schema(RadioSchema):
 
 
 class CC_Schema(RadioSchema):
-    index = Integer(required=True)
+    index = FormattedInteger(required=True)
     rx_freq = RadioFloat(required=True)
     step = Indexed(values=STEP_SIZE, required=True)
     shift = Indexed(SHIFT_DIRECTION, required=True)

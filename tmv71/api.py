@@ -360,6 +360,15 @@ class TMV71:
         band = schema.BANDS.index(band)
         return self.send_command('FO', schema.FO.to_csv(settings))
 
+    @schemacommand(schema.CC)
+    def get_call_channel(self, index):
+        return self.send_command('CC', index)
+
+    @schemacommand(schema.CC)
+    def set_call_channel(self, index, settings):
+        settings[index] = index
+        return self.send_command('CC', schema.CC.to_csv(settings))
+
     @schemacommand(schema.ME)
     def get_channel_entry(self, channel):
         channel = '{:03d}'.format(channel)
