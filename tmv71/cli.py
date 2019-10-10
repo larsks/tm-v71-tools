@@ -767,6 +767,10 @@ def tune(ctx, band, **kwargs):
     frequency-band command to change bands.'''
 
     band = normalize_band(band)
+    res = ctx.api.get_band_mode(band)
+    if res != 0:
+        raise click.ClickException('selected band must be in VFO mode')
+
     res = ctx.api.get_band_vfo(band)
 
     set_radio = False
