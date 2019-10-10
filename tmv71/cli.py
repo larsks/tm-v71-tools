@@ -76,7 +76,9 @@ def apply_options_from_schema(model, **kwargs):
 
     for fname, fspec in model.declared_fields.items():
         display_name = fname.replace('_', '-')
-        if isinstance(fspec, schema.RadioBoolean):
+        if fname == 'band':
+            pass
+        elif isinstance(fspec, schema.RadioBoolean):
             options.append(
                 click.option('--{0}/--no-{0}'.format(display_name),
                              default=None,
@@ -754,7 +756,7 @@ def vfo():
 
 @vfo.command()
 @apply_options_from_schema(schema.FO)
-@click.argument('band', type=click.Choice(schema.BANDS))
+@click.argument('band', type=click.Choice(BAND_NAMES))
 @formatted
 @click.pass_obj
 @clear_first
@@ -764,6 +766,7 @@ def tune(ctx, band, **kwargs):
     You can only tune to frequencies on the current band. Use the
     frequency-band command to change bands.'''
 
+    band = normalize_band(band)
     res = ctx.api.get_band_vfo(band)
 
     set_radio = False
