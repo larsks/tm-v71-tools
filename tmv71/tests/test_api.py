@@ -1,6 +1,7 @@
 import io
 import pytest
 import struct
+from unittest import mock
 
 from tmv71 import api
 
@@ -54,6 +55,15 @@ def test_read_block_no_pm(radio, serial):
         radio.read_block(0, 4)
 
 
+def test_programming_mode_too_slow(radio, serial, monkeypatch):
+    monkeypatch.setattr(api, 'LOG', mock.Mock())
+    serial.stuff(b'0M\r\x15\x06\r\x00')
+    with radio.programming_mode():
+        radio.write_block(0, b'\x00')
+
+    api.LOG.warning.assert_called_with('radio is in error state (continuing)')
+
+
 def test_read_block(radio, serial):
     test_data = b'\x01\x02\x03\x04'
 
@@ -65,6 +75,21 @@ def test_read_block(radio, serial):
         data = radio.read_block(0, 4)
         assert serial.rx.getvalue().endswith(b'R\x00\x00\x04\x06')
         assert data == test_data
+
+
+def test_write_block(radio, serial):
+    test_data = b'\x01\x02\x03\x04'
+    serial.stuff(b'0M\r\x06\x06\r\x00')
+    with radio.programming_mode():
+        radio.write_block(0, test_data)
+        assert serial.rx.getvalue().endswith(test_data)
+
+
+def test_write_block_invalid_size(radio, serial):
+    serial.stuff(b'0M\r\x06\r\x00')
+    with radio.programming_mode():
+        with pytest.raises(ValueError):
+            radio.write_block(0, 'N1LKS' * 1024)
 
 
 def test_radio_type(radio, serial):
@@ -381,3 +406,126 @@ def test_set_poweron_message(radio, serial):
     res = radio.set_poweron_message('DUMMY')
     assert res == 'DUMMY'
     assert b'MS DUMMY\r' in serial.rx.getvalue()
+
+
+def test_get_ptt_ctrl(radio, serial):
+    serial.stuff(b'BC 0,0\r')
+    res = radio.get_ptt_ctrl()
+    assert res == dict(ptt=0, ctrl=0)
+
+
+def test_set_ptt_ctrl(radio, serial):
+    serial.stuff(b'BC 0,0\r')
+    res = radio.set_ptt_ctrl(0, 0)
+    assert res == dict(ptt=0, ctrl=0)
+
+
+def test_get_dual_band_mode(radio, serial):
+    serial.stuff(b'DL 0\r')
+    res = radio.get_dual_band_mode()
+    assert res == 0
+
+
+def test_set_dual_band_mode(radio, serial):
+    serial.stuff(b'DL 0\r')
+    res = radio.set_dual_band_mode()
+    assert res == 0
+
+
+def test_set_single_band_mode(radio, serial):
+    serial.stuff(b'DL 1\r')
+    res = radio.set_single_band_mode()
+    assert res == 1
+
+
+def test_get_channel(radio, serial):
+    serial.stuff(b'MR 0,000\r')
+    res = radio.get_channel(0)
+    assert res == 0
+
+
+def test_set_channel(radio, serial):
+    serial.stuff(b'MR 0,000\r')
+    res = radio.set_channel(0, 0)
+    assert res == 0
+    assert b'MR 0,000' in serial.rx.getvalue()
+
+
+def test_get_band_vfo(radio, serial):
+    serial.stuff(b'FO 0,0145430000,0,2,0,0,1,0,23,23,000,00600000,0\r')
+    res = radio.get_band_vfo(0)
+    assert res == dict(
+        band=0,
+        ctcss_freq=146.2,
+        ctcss_status=True,
+        dcs_code=23,
+        dcs_status=False,
+        mode='FM',
+        offset=0.6,
+        reverse=False,
+        rx_freq=145.43,
+        shift='DOWN',
+        step=5,
+        tone_freq=146.2,
+        tone_status=False,
+    )
+
+
+def test_set_band_vfo(radio, serial):
+    fo1 = b'FO 0,0145430000,0,2,0,0,1,0,23,23,000,00600000,0\r'
+    fo2 = b'FO 0,0144000000,0,2,0,0,1,0,23,23,000,00600000,0\r'
+    serial.stuff(fo1 + fo2)
+    res = radio.get_band_vfo(0)
+    res['rx_freq'] = 144.0
+    res = radio.set_band_vfo(0, res)
+    assert res == dict(
+        band=0,
+        ctcss_freq=146.2,
+        ctcss_status=True,
+        dcs_code=23,
+        dcs_status=False,
+        mode='FM',
+        offset=0.6,
+        reverse=False,
+        rx_freq=144.0,
+        shift='DOWN',
+        step=5,
+        tone_freq=146.2,
+        tone_status=False,
+    )
+
+    assert fo2 in serial.rx.getvalue()
+
+
+def test_get_call_channel(radio, serial):
+    serial.stuff(b'CC 0,0146520000,0,0,0,0,0,0,08,08,'
+                 b'000,00600000,0,0000000000,0\r')
+    res = radio.get_call_channel(0)
+    assert res == dict(
+        index=0,
+        rx_freq=146.52,
+        tone_freq=88.5,
+        offset=0.6,
+        unknown='0',
+        mode='FM',
+        tx_freq=0.0,
+        ctcss_status=False,
+        reverse=False,
+        dcs_status=False,
+        tone_status=False,
+        dcs_code=23,
+        ctcss_freq=88.5,
+        step=5,
+        shift='SIMPLEX'
+    )
+
+
+def test_set_call_channel(radio, serial):
+    s1 = b'CC 0,0146520000,0,0,0,0,0,0,08,08,000,00600000,0,0000000000,0\r'
+    s2 = b'CC 0,0144000000,0,0,0,0,0,0,08,08,000,00600000,0,0000000000,0\r'
+    serial.stuff(s1 + s2)
+
+    res = radio.get_call_channel(0)
+    res['rx_freq'] = 144.0
+    res = radio.set_call_channel(0, res)
+    assert s2 in serial.rx.getvalue()

@@ -291,11 +291,11 @@ def send_dtmf(ctx, wait, fast, tones):
     tones = ''.join(tones).replace(' ', '')
     if wait:
         LOG.info('waiting until channel is free')
-        band_state = ctx.api.get_ptt_ctrl_band()
-        ptt_band = band_state['ptt_band']
-        LOG.debug('current ptt band is %s', ptt_band)
-        while ctx.api.get_band_squelch_state(ptt_band) == 1:
-            LOG.debug('waiting until band %s is not busy', ptt_band)
+        band_state = ctx.api.get_ptt_ctrl()
+        ptt = band_state['ptt']
+        LOG.debug('current ptt band is %s', ptt)
+        while ctx.api.get_band_squelch_state(ptt) == 1:
+            LOG.debug('waiting until band %s is not busy', ptt)
             time.sleep(0.5)
 
     with ctx.api.ptt():
@@ -409,7 +409,7 @@ def band_select(ctx, band, which, mode):
     if which and mode:
         raise click.ClickException('-1/-2 and -c/-p are mutually exclusive')
 
-    cur_state = ctx.api.get_ptt_ctrl_band()
+    cur_state = ctx.api.get_ptt_ctrl()
     cur_mode = ctx.api.get_dual_band_mode()
 
     if mode == 2:
@@ -419,17 +419,17 @@ def band_select(ctx, band, which, mode):
 
         if mode:
             if mode == 1:
-                cur_state['ctrl_band'] = cur_state['ptt_band'] = band
+                cur_state['ctrl_band'] = cur_state['ptt'] = band
                 cur_mode = ctx.api.set_single_band_mode()
         else:
             if which == 'control':
                 cur_state['ctrl_band'] = band
             elif which == 'ptt':
-                cur_state['ptt_band'] = band
+                cur_state['ptt'] = band
             else:
-                cur_state['ctrl_band'] = cur_state['ptt_band'] = band
+                cur_state['ctrl'] = cur_state['ptt'] = band
 
-        cur_state = ctx.api.set_ptt_ctrl_band(**cur_state)
+        cur_state = ctx.api.set_ptt_ctrl(**cur_state)
 
     return dict(mode=['dual', 'single'][cur_mode], **cur_state)
 

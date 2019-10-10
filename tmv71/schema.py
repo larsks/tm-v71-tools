@@ -1,6 +1,6 @@
 from marshmallow import Schema, post_load, validate
 from marshmallow.fields import Field, String, Float, Boolean, Integer
-from marshmallow.validate import OneOf
+from marshmallow.validate import OneOf, Range
 
 BANDS = ['A', 'B']
 BAND_MODE = ['VFO', 'MEM', 'CALL', 'WX']
@@ -312,7 +312,7 @@ class ME_Schema(RadioSchema):
 
 
 class FO_Schema(RadioSchema):
-    band = Indexed(BANDS, required=True)
+    band = FormattedInteger(required=True, validate=Range(0, 1))
     rx_freq = RadioFloat(required=True)
     step = Indexed(values=STEP_SIZE, required=True)
     shift = Indexed(SHIFT_DIRECTION, required=True)
@@ -322,7 +322,7 @@ class FO_Schema(RadioSchema):
     dcs_status = RadioBoolean(required=True)
     tone_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float)
     ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float)
-    dcs_code = Indexed(values=DCS_CODE, required=True, type=int)
+    dcs_code = Indexed(values=DCS_CODE, required=True, fmt='{:03d}', type=int)
     offset = RadioFloat(length=8, required=True)
     mode = Indexed(MODE, required=True)
 
@@ -336,9 +336,11 @@ class CC_Schema(RadioSchema):
     tone_status = RadioBoolean(required=True)
     ctcss_status = RadioBoolean(required=True)
     dcs_status = RadioBoolean(required=True)
-    tone_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float)
-    ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float)
-    dcs_code = Indexed(values=DCS_CODE, required=True, type=int)
+    tone_freq = Indexed(values=TONE_FREQUENCY, required=True,
+                        fmt='{:02d}', type=float)
+    ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True,
+                         fmt='{:02d}', type=float)
+    dcs_code = Indexed(values=DCS_CODE, required=True, fmt='{:03d}', type=int)
     offset = RadioFloat(length=8, required=True)
     mode = Indexed(MODE, required=True)
     tx_freq = RadioFloat(required=True)
@@ -354,8 +356,8 @@ class TY_Schema(RadioSchema):
 
 
 class BC_Schema(RadioSchema):
-    ctrl_band = Integer()
-    ptt_band = Integer()
+    ctrl = Integer()
+    ptt = Integer()
 
 
 class AE_Schema(RadioSchema):

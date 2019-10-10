@@ -296,11 +296,11 @@ class TMV71:
         return self.send_command('MR', band, channel)
 
     @schemacommand(schema.BC)
-    def get_ptt_ctrl_band(self):
+    def get_ptt_ctrl(self):
         return self.send_command('BC')
 
     @schemacommand(schema.BC)
-    def set_ptt_ctrl_band(self, ctrl_band, ptt_band):
+    def set_ptt_ctrl(self, ctrl_band, ptt_band):
         return self.send_command('BC', ctrl_band, ptt_band)
 
     def set_ptt(self, ptt_state):
@@ -358,13 +358,11 @@ class TMV71:
 
     @schemacommand(schema.FO)
     def get_band_vfo(self, band):
-        band = schema.BANDS.index(band)
         return self.send_command('FO', band)
 
     @schemacommand(schema.FO)
     def set_band_vfo(self, band, settings):
         settings['band'] = band
-        band = schema.BANDS.index(band)
         return self.send_command('FO', schema.FO.to_csv(settings))
 
     @schemacommand(schema.CC)

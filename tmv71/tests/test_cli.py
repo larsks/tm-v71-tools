@@ -33,6 +33,14 @@ def test_info_id(runner, serial, environ):
     assert res.output == 'DUMMY\n'
 
 
+def test_info_id_debug(runner, serial, environ):
+    serial.stuff(b'ID DUMMY\r')
+    res = runner.invoke(cli.main, ['-vvv', 'info', 'id'])
+    assert res.exit_code == 0
+    assert serial.rx.getvalue() == b'ID\r'
+    assert '49 44 20 44 55 4D 4D 59' in res.output
+
+
 def test_info_type(runner, serial, environ):
     serial.stuff(b'TY K,1,0,1,0\r')
     res = runner.invoke(cli.main, ['info', 'type'])
