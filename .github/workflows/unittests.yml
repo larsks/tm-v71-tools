@@ -22,6 +22,6 @@ jobs:
       - name: Lint with flake8
         run: |
           tox -e pep8
-      - name: Test with tox
+      - name: Run unit tests
         run: |
           tox -e py37
