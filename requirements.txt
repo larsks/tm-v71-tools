@@ -1,5 +1,6 @@
 click
 hexdump
+kaitaistruct
 marshmallow
 pyserial
 tabulate
