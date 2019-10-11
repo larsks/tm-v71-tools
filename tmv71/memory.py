@@ -9,6 +9,23 @@ if parse_version(ks_version) < parse_version('0.7'):
     raise Exception("Incompatible Kaitai Struct Python API: 0.7 or later is required, but you have %s" % (ks_version))
 
 class Memory(KaitaiStruct):
+    """This is a Kaitai Struct[1] definition that parses the memory
+    dump from a Kenwood TM-V71A radio. To generate a Python module from
+    this description, use the Kaitai Struct Compiler:
+    
+        ksc --target python --outdir tmv71 memory.ksy
+    
+    This will generate `memory.py`, which you can then use like this:
+    
+        from tmv71.memory import Memory
+    
+        data = Memory.from_file('my_dump_file.bin')
+        for i, channel in enumerate(data.channels()):
+          print('channel {} rx frequency: {}'.format(
+                i, channel.common.rx_freq))
+    
+    [1]: http://kaitai.io/
+    """
 
     class ShiftDirection(Enum):
         simplex = 0
@@ -130,6 +147,22 @@ class Memory(KaitaiStruct):
 
         def _read(self):
             self.common = self._root.CommonVfoFields(self._io, self, self._root)
+
+        @property
+        def name(self):
+            if hasattr(self, '_m_name'):
+                return self._m_name if hasattr(self, '_m_name') else None
+
+            self._m_name = self._root.channel_names[self.number]
+            return self._m_name if hasattr(self, '_m_name') else None
+
+        @property
+        def extended_flags(self):
+            if hasattr(self, '_m_extended_flags'):
+                return self._m_extended_flags if hasattr(self, '_m_extended_flags') else None
+
+            self._m_extended_flags = self._root.channel_extended_flags[self.number]
+            return self._m_extended_flags if hasattr(self, '_m_extended_flags') else None
 
 
     class CommonVfoFields(KaitaiStruct):
@@ -365,10 +398,11 @@ class Memory(KaitaiStruct):
 
 
     class ProgramMemory(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
+        def __init__(self, number, _io, _parent=None, _root=None):
             self._io = _io
             self._parent = _parent
             self._root = _root if _root else self
+            self.number = number
             self._read()
 
         def _read(self):
@@ -467,6 +501,16 @@ class Memory(KaitaiStruct):
             self._m_ctrl_band = self._io.read_u1()
             self._io.seek(_pos)
             return self._m_ctrl_band if hasattr(self, '_m_ctrl_band') else None
+
+        @property
+        def name(self):
+            if hasattr(self, '_m_name'):
+                return self._m_name if hasattr(self, '_m_name') else None
+
+            if self.number > 0:
+                self._m_name = self._root.program_memory_names[(self.number - 1)]
+
+            return self._m_name if hasattr(self, '_m_name') else None
 
         @property
         def band_masks(self):
@@ -607,6 +651,11 @@ class Memory(KaitaiStruct):
 
     @property
     def program_memory(self):
+        """The radio has 6 programmable memory regions. One is used when no
+        PM channel is selected, and then there are 5 numbered PM channels.
+        The PM channels store a variety of radio configuration settings so
+        that you can quickly switch between them.
+        """
         if hasattr(self, '_m_program_memory'):
             return self._m_program_memory if hasattr(self, '_m_program_memory') else None
 
@@ -617,7 +666,7 @@ class Memory(KaitaiStruct):
         for i in range(6):
             self._raw__m_program_memory[i] = self._io.read_bytes(512)
             io = KaitaiStream(BytesIO(self._raw__m_program_memory[i]))
-            self._m_program_memory[i] = self._root.ProgramMemory(io, self, self._root)
+            self._m_program_memory[i] = self._root.ProgramMemory(i, io, self, self._root)
 
         self._io.seek(_pos)
         return self._m_program_memory if hasattr(self, '_m_program_memory') else None
@@ -763,6 +812,9 @@ class Memory(KaitaiStruct):
 
     @property
     def tables(self):
+        """A list of lookup tables used to convert numeric constants stored
+        in radio memory to their corresponding values.
+        """
         if hasattr(self, '_m_tables'):
             return self._m_tables if hasattr(self, '_m_tables') else None
 

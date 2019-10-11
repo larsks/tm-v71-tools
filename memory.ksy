@@ -1,4 +1,23 @@
 ---
+doc: |
+  This is a Kaitai Struct[1] definition that parses the memory
+  dump from a Kenwood TM-V71A radio. To generate a Python module from
+  this description, use the Kaitai Struct Compiler:
+
+      ksc --target python --outdir tmv71 memory.ksy
+
+  This will generate `memory.py`.
+
+  Example usage:
+
+      from tmv71.memory import Memory
+
+      data = Memory.from_file('my_dump_file.bin')
+      for i, channel in enumerate(data.channels()):
+        print('channel {} ({}) rx frequency: {}'.format(
+              i, channel.name, channel.common.rx_freq))
+
+  [1]: http://kaitai.io/
 meta:
   id: memory
   title: "TMV71 Channels"
@@ -8,6 +27,9 @@ meta:
 
 instances:
   tables:
+    doc: |
+      A list of lookup tables used to convert numeric constants stored
+      in radio memory to their corresponding values.
     type: tables
 
   misc_settings:
@@ -52,13 +74,22 @@ instances:
     repeat-expr: 10
 
   program_memory:
+    doc: |
+      The radio has 6 programmable memory regions. One is used when no
+      PM channel is selected, and then there are 5 numbered PM channels.
+      The PM channels store a variety of radio configuration settings so
+      that you can quickly switch between them.
     pos: 0x200
     size: 512
-    type: program_memory
+    type: program_memory(_index)
     repeat: expr
     repeat-expr: 6
 
   channel_extended_flags:
+    doc: |
+      The TM-V71A appears to maintain some extended channel flags. At
+      the moment I have only identify the `lockout` flag, used to
+      skip a channel during scans.
     pos: 0xe00
     type: channel_extended_flags
     repeat: expr
@@ -214,6 +245,11 @@ types:
     seq:
       - id: common
         type: common_vfo_fields
+    instances:
+      name:
+        value: _root.channel_names[number]
+      extended_flags:
+        value: _root.channel_extended_flags[number]
   program_scan_memory:
     seq:
       - id: lower
@@ -253,7 +289,13 @@ types:
       - id: flags
         type: extended_flag_bits
   program_memory:
+    params:
+      - id: number
+        type: u2
     instances:
+      name:
+        value: _root.program_memory_names[number-1]
+        if: number > 0
       bands:
         type: band(_index)
         size: 0xc
