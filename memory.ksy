@@ -10,6 +10,11 @@ instances:
   tables:
     type: tables
 
+  misc_settings:
+    pos: 0x0
+    type: misc_settings
+    size: 0x100
+
   dtmf_codes:
     pos: 0x30
     type: str
@@ -138,6 +143,29 @@ types:
            462, 464, 465, 466, 503, 506, 516, 523, 565, 532, 546, 565,
            606, 612, 624, 627, 631, 632, 654, 662, 664, 703, 712, 723,
            731, 732, 734, 743, 754]
+
+  misc_settings:
+    instances:
+      repeater_config:
+        pos: 0x10
+        type: repeater_config
+      key_lock:
+        pos: 0x17
+        type: u1
+      pc_port_speed:
+        pos: 0x21
+        type: u1
+        enum: port_speed
+
+  repeater_config:
+    seq:
+      - id: crossband_repeat
+        type: u1
+      - id: wireless_remote
+        type: u1
+      - id: remote_id
+        size: 3
+
   common_vfo_fields:
     seq:
       - id: rx_freq_raw
@@ -226,33 +254,13 @@ types:
         type: extended_flag_bits
   program_memory:
     instances:
-      band_a_mode:
-        pos: 0x01
-        type: u1
-      band_a_freq_band:
-        pos: 0x02
-        type: u1
-        enum: freq_band
-      band_a_power:
-        pos: 0x07
-        type: u1
-        enum: tx_power
-      band_b_mode:
-        pos: 0x0D
-        type: u1
-      band_b_freq_band:
-        pos: 0x0E
-        type: u1
-        enum: freq_band
-      band_b_power:
-        pos: 0x13
-        type: u1
-        enum: tx_power
-      s_meter_squelch:
-        pos: 0x15
-        type: u1
+      bands:
+        type: band(_index)
+        size: 0xc
+        repeat: expr
+        repeat-expr: 2
       current_menu_item:
-        pos: 0x15
+        pos: 0x2E
         type: u1
       ptt_band:
         pos: 0x32
@@ -260,11 +268,11 @@ types:
       ctrl_band:
         pos: 0x33
         type: u1
-      poweron_message:
+      power_on_message:
         pos: 0xE0
         type: str
         encoding: ascii
-        terminator: 0xff
+        terminator: 0x00
         size: 12
       group_link:
         pos: 0xF0
@@ -278,26 +286,86 @@ types:
       beep_volume:
         pos: 0x151
         type: u1
-      band_mask_a:
+      band_masks:
         pos: 0x180
-        type: u1
+        type: band_mask_list(5)
         repeat: expr
-        repeat-expr: 5
-      band_mask_b:
-        pos: 0x185
-        type: u1
-        repeat: expr
-        repeat-expr: 5
-      vfo_settings_a:
+        repeat-expr: 2
+      vfo_settings:
         pos: 0x40
+        type: vfo_settings_list(5)
+        repeat: expr
+        repeat-expr: 2
+      band_limits:
+        pos: 0x100
+        type: band_limit_list(5)
+        repeat: expr
+        repeat-expr: 2
+
+  band_mask_list:
+    params:
+      - id: number
+        type: u2
+    seq:
+      - id: mask
+        type: u1
+        repeat: expr
+        repeat-expr: number
+
+  band_limit_list:
+    params:
+      - id: number
+        type: u2
+    seq:
+      - id: list
+        type: band_limit
+        repeat: expr
+        repeat-expr: number
+
+  band_limit:
+    seq:
+      - id: lower
+        type: u4
+      - id: upper
+        type: u4
+
+  band:
+    params:
+      - id: number
+        type: u2
+    instances:
+      display_mode:
+        pos: 0x01
+        type: u1
+        enum: display_mode
+      freq_band_raw:
+        pos: 0x02
+        type: u1
+      freq_band:
+        doc: |
+          For reasons known only to the designers, the constants that
+          indicate frequency band are different on VFO A and VFO B. We
+          can adjust the VFO B constants to match by substracing 4
+          from the value.
+        value: freq_band_raw - 4*number
+        enum: freq_band
+      tx_power:
+        pos: 0x07
+        type: u1
+        enum: tx_power
+      s_meter_squelch:
+        pos: 0x09
+        type: u1
+
+  vfo_settings_list:
+    params:
+      - id: number
+        type: u2
+    seq:
+      - id: list
         type: common_vfo_fields
         repeat: expr
-        repeat-expr: 5
-      vfo_settings_b:
-        pos: 0x90
-        type: common_vfo_fields
-        repeat: expr
-        repeat-expr: 5
+        repeat-expr: number
 enums:
   channel_band:
     5: vhf
@@ -323,9 +391,17 @@ enums:
     1: band_144
     2: band_220
     3: band_300
-    5: band_430
-    6: band_1200
+    4: band_430
+    5: band_1200
   tx_power:
     0: high
     1: medium
     2: low
+  port_speed:
+    0: b9600
+    1: b19200
+    2: b38400
+    3: b57600
+  display_mode:
+    0: vfo
+    1: memory

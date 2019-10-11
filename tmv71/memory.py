@@ -21,14 +21,20 @@ class Memory(KaitaiStruct):
         band_144 = 1
         band_220 = 2
         band_300 = 3
-        band_430 = 5
-        band_1200 = 6
+        band_430 = 4
+        band_1200 = 5
 
     class Modulation(Enum):
         fm = 0
         am = 1
         nfm = 2
         invalid = 255
+
+    class PortSpeed(Enum):
+        b9600 = 0
+        b19200 = 1
+        b38400 = 2
+        b57600 = 3
 
     class ChannelBand(Enum):
         vhf = 5
@@ -38,6 +44,10 @@ class Memory(KaitaiStruct):
         high = 0
         medium = 1
         low = 2
+
+    class DisplayMode(Enum):
+        vfo = 0
+        memory = 1
 
     class Admit(Enum):
         none = 0
@@ -53,6 +63,50 @@ class Memory(KaitaiStruct):
 
     def _read(self):
         pass
+
+    class MiscSettings(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            pass
+
+        @property
+        def repeater_config(self):
+            if hasattr(self, '_m_repeater_config'):
+                return self._m_repeater_config if hasattr(self, '_m_repeater_config') else None
+
+            _pos = self._io.pos()
+            self._io.seek(16)
+            self._m_repeater_config = self._root.RepeaterConfig(self._io, self, self._root)
+            self._io.seek(_pos)
+            return self._m_repeater_config if hasattr(self, '_m_repeater_config') else None
+
+        @property
+        def key_lock(self):
+            if hasattr(self, '_m_key_lock'):
+                return self._m_key_lock if hasattr(self, '_m_key_lock') else None
+
+            _pos = self._io.pos()
+            self._io.seek(23)
+            self._m_key_lock = self._io.read_u1()
+            self._io.seek(_pos)
+            return self._m_key_lock if hasattr(self, '_m_key_lock') else None
+
+        @property
+        def pc_port_speed(self):
+            if hasattr(self, '_m_pc_port_speed'):
+                return self._m_pc_port_speed if hasattr(self, '_m_pc_port_speed') else None
+
+            _pos = self._io.pos()
+            self._io.seek(33)
+            self._m_pc_port_speed = self._root.PortSpeed(self._io.read_u1())
+            self._io.seek(_pos)
+            return self._m_pc_port_speed if hasattr(self, '_m_pc_port_speed') else None
+
 
     class ExtendedFlagBits(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
@@ -164,6 +218,18 @@ class Memory(KaitaiStruct):
             return self._m_tx_step if hasattr(self, '_m_tx_step') else None
 
 
+    class BandLimit(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.lower = self._io.read_u4le()
+            self.upper = self._io.read_u4le()
+
+
     class ChannelExtendedFlags(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -174,6 +240,75 @@ class Memory(KaitaiStruct):
         def _read(self):
             self.band = self._io.read_u1()
             self.flags = self._root.ExtendedFlagBits(self._io, self, self._root)
+
+
+    class Band(KaitaiStruct):
+        def __init__(self, number, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self.number = number
+            self._read()
+
+        def _read(self):
+            pass
+
+        @property
+        def freq_band_raw(self):
+            if hasattr(self, '_m_freq_band_raw'):
+                return self._m_freq_band_raw if hasattr(self, '_m_freq_band_raw') else None
+
+            _pos = self._io.pos()
+            self._io.seek(2)
+            self._m_freq_band_raw = self._io.read_u1()
+            self._io.seek(_pos)
+            return self._m_freq_band_raw if hasattr(self, '_m_freq_band_raw') else None
+
+        @property
+        def freq_band(self):
+            """For reasons known only to the designers, the constants that
+            indicate frequency band are different on VFO A and VFO B. We
+            can adjust the VFO B constants to match by substracing 4
+            from the value.
+            """
+            if hasattr(self, '_m_freq_band'):
+                return self._m_freq_band if hasattr(self, '_m_freq_band') else None
+
+            self._m_freq_band = self._root.FreqBand((self.freq_band_raw - (4 * self.number)))
+            return self._m_freq_band if hasattr(self, '_m_freq_band') else None
+
+        @property
+        def display_mode(self):
+            if hasattr(self, '_m_display_mode'):
+                return self._m_display_mode if hasattr(self, '_m_display_mode') else None
+
+            _pos = self._io.pos()
+            self._io.seek(1)
+            self._m_display_mode = self._root.DisplayMode(self._io.read_u1())
+            self._io.seek(_pos)
+            return self._m_display_mode if hasattr(self, '_m_display_mode') else None
+
+        @property
+        def tx_power(self):
+            if hasattr(self, '_m_tx_power'):
+                return self._m_tx_power if hasattr(self, '_m_tx_power') else None
+
+            _pos = self._io.pos()
+            self._io.seek(7)
+            self._m_tx_power = self._root.TxPower(self._io.read_u1())
+            self._io.seek(_pos)
+            return self._m_tx_power if hasattr(self, '_m_tx_power') else None
+
+        @property
+        def s_meter_squelch(self):
+            if hasattr(self, '_m_s_meter_squelch'):
+                return self._m_s_meter_squelch if hasattr(self, '_m_s_meter_squelch') else None
+
+            _pos = self._io.pos()
+            self._io.seek(9)
+            self._m_s_meter_squelch = self._io.read_u1()
+            self._io.seek(_pos)
+            return self._m_s_meter_squelch if hasattr(self, '_m_s_meter_squelch') else None
 
 
     class ProgramScanMemory(KaitaiStruct):
@@ -188,6 +323,21 @@ class Memory(KaitaiStruct):
             self.upper = self._root.CommonVfoFields(self._io, self, self._root)
 
 
+    class BandMaskList(KaitaiStruct):
+        def __init__(self, number, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self.number = number
+            self._read()
+
+        def _read(self):
+            self.mask = [None] * (self.number)
+            for i in range(self.number):
+                self.mask[i] = self._io.read_u1()
+
+
+
     class VfoConfig(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
             self._io = _io
@@ -197,6 +347,21 @@ class Memory(KaitaiStruct):
 
         def _read(self):
             self.common = self._root.CommonVfoFields(self._io, self, self._root)
+
+
+    class VfoSettingsList(KaitaiStruct):
+        def __init__(self, number, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self.number = number
+            self._read()
+
+        def _read(self):
+            self.list = [None] * (self.number)
+            for i in range(self.number):
+                self.list[i] = self._root.CommonVfoFields(self._io, self, self._root)
+
 
 
     class ProgramMemory(KaitaiStruct):
@@ -210,18 +375,18 @@ class Memory(KaitaiStruct):
             pass
 
         @property
-        def band_mask_b(self):
-            if hasattr(self, '_m_band_mask_b'):
-                return self._m_band_mask_b if hasattr(self, '_m_band_mask_b') else None
+        def band_limits(self):
+            if hasattr(self, '_m_band_limits'):
+                return self._m_band_limits if hasattr(self, '_m_band_limits') else None
 
             _pos = self._io.pos()
-            self._io.seek(389)
-            self._m_band_mask_b = [None] * (5)
-            for i in range(5):
-                self._m_band_mask_b[i] = self._io.read_u1()
+            self._io.seek(256)
+            self._m_band_limits = [None] * (2)
+            for i in range(2):
+                self._m_band_limits[i] = self._root.BandLimitList(5, self._io, self, self._root)
 
             self._io.seek(_pos)
-            return self._m_band_mask_b if hasattr(self, '_m_band_mask_b') else None
+            return self._m_band_limits if hasattr(self, '_m_band_limits') else None
 
         @property
         def beep(self):
@@ -235,26 +400,12 @@ class Memory(KaitaiStruct):
             return self._m_beep if hasattr(self, '_m_beep') else None
 
         @property
-        def vfo_settings_a(self):
-            if hasattr(self, '_m_vfo_settings_a'):
-                return self._m_vfo_settings_a if hasattr(self, '_m_vfo_settings_a') else None
-
-            _pos = self._io.pos()
-            self._io.seek(64)
-            self._m_vfo_settings_a = [None] * (5)
-            for i in range(5):
-                self._m_vfo_settings_a[i] = self._root.CommonVfoFields(self._io, self, self._root)
-
-            self._io.seek(_pos)
-            return self._m_vfo_settings_a if hasattr(self, '_m_vfo_settings_a') else None
-
-        @property
         def current_menu_item(self):
             if hasattr(self, '_m_current_menu_item'):
                 return self._m_current_menu_item if hasattr(self, '_m_current_menu_item') else None
 
             _pos = self._io.pos()
-            self._io.seek(21)
+            self._io.seek(46)
             self._m_current_menu_item = self._io.read_u1()
             self._io.seek(_pos)
             return self._m_current_menu_item if hasattr(self, '_m_current_menu_item') else None
@@ -271,31 +422,6 @@ class Memory(KaitaiStruct):
             return self._m_beep_volume if hasattr(self, '_m_beep_volume') else None
 
         @property
-        def band_a_mode(self):
-            if hasattr(self, '_m_band_a_mode'):
-                return self._m_band_a_mode if hasattr(self, '_m_band_a_mode') else None
-
-            _pos = self._io.pos()
-            self._io.seek(1)
-            self._m_band_a_mode = self._io.read_u1()
-            self._io.seek(_pos)
-            return self._m_band_a_mode if hasattr(self, '_m_band_a_mode') else None
-
-        @property
-        def vfo_settings_b(self):
-            if hasattr(self, '_m_vfo_settings_b'):
-                return self._m_vfo_settings_b if hasattr(self, '_m_vfo_settings_b') else None
-
-            _pos = self._io.pos()
-            self._io.seek(144)
-            self._m_vfo_settings_b = [None] * (5)
-            for i in range(5):
-                self._m_vfo_settings_b[i] = self._root.CommonVfoFields(self._io, self, self._root)
-
-            self._io.seek(_pos)
-            return self._m_vfo_settings_b if hasattr(self, '_m_vfo_settings_b') else None
-
-        @property
         def ptt_band(self):
             if hasattr(self, '_m_ptt_band'):
                 return self._m_ptt_band if hasattr(self, '_m_ptt_band') else None
@@ -307,26 +433,18 @@ class Memory(KaitaiStruct):
             return self._m_ptt_band if hasattr(self, '_m_ptt_band') else None
 
         @property
-        def poweron_message(self):
-            if hasattr(self, '_m_poweron_message'):
-                return self._m_poweron_message if hasattr(self, '_m_poweron_message') else None
+        def vfo_settings(self):
+            if hasattr(self, '_m_vfo_settings'):
+                return self._m_vfo_settings if hasattr(self, '_m_vfo_settings') else None
 
             _pos = self._io.pos()
-            self._io.seek(224)
-            self._m_poweron_message = (KaitaiStream.bytes_terminate(self._io.read_bytes(12), 255, False)).decode(u"ascii")
-            self._io.seek(_pos)
-            return self._m_poweron_message if hasattr(self, '_m_poweron_message') else None
+            self._io.seek(64)
+            self._m_vfo_settings = [None] * (2)
+            for i in range(2):
+                self._m_vfo_settings[i] = self._root.VfoSettingsList(5, self._io, self, self._root)
 
-        @property
-        def band_a_power(self):
-            if hasattr(self, '_m_band_a_power'):
-                return self._m_band_a_power if hasattr(self, '_m_band_a_power') else None
-
-            _pos = self._io.pos()
-            self._io.seek(7)
-            self._m_band_a_power = self._root.TxPower(self._io.read_u1())
             self._io.seek(_pos)
-            return self._m_band_a_power if hasattr(self, '_m_band_a_power') else None
+            return self._m_vfo_settings if hasattr(self, '_m_vfo_settings') else None
 
         @property
         def group_link(self):
@@ -340,31 +458,6 @@ class Memory(KaitaiStruct):
             return self._m_group_link if hasattr(self, '_m_group_link') else None
 
         @property
-        def band_mask_a(self):
-            if hasattr(self, '_m_band_mask_a'):
-                return self._m_band_mask_a if hasattr(self, '_m_band_mask_a') else None
-
-            _pos = self._io.pos()
-            self._io.seek(384)
-            self._m_band_mask_a = [None] * (5)
-            for i in range(5):
-                self._m_band_mask_a[i] = self._io.read_u1()
-
-            self._io.seek(_pos)
-            return self._m_band_mask_a if hasattr(self, '_m_band_mask_a') else None
-
-        @property
-        def band_b_freq_band(self):
-            if hasattr(self, '_m_band_b_freq_band'):
-                return self._m_band_b_freq_band if hasattr(self, '_m_band_b_freq_band') else None
-
-            _pos = self._io.pos()
-            self._io.seek(14)
-            self._m_band_b_freq_band = self._root.FreqBand(self._io.read_u1())
-            self._io.seek(_pos)
-            return self._m_band_b_freq_band if hasattr(self, '_m_band_b_freq_band') else None
-
-        @property
         def ctrl_band(self):
             if hasattr(self, '_m_ctrl_band'):
                 return self._m_ctrl_band if hasattr(self, '_m_ctrl_band') else None
@@ -376,48 +469,56 @@ class Memory(KaitaiStruct):
             return self._m_ctrl_band if hasattr(self, '_m_ctrl_band') else None
 
         @property
-        def band_a_freq_band(self):
-            if hasattr(self, '_m_band_a_freq_band'):
-                return self._m_band_a_freq_band if hasattr(self, '_m_band_a_freq_band') else None
+        def band_masks(self):
+            if hasattr(self, '_m_band_masks'):
+                return self._m_band_masks if hasattr(self, '_m_band_masks') else None
 
             _pos = self._io.pos()
-            self._io.seek(2)
-            self._m_band_a_freq_band = self._root.FreqBand(self._io.read_u1())
+            self._io.seek(384)
+            self._m_band_masks = [None] * (2)
+            for i in range(2):
+                self._m_band_masks[i] = self._root.BandMaskList(5, self._io, self, self._root)
+
             self._io.seek(_pos)
-            return self._m_band_a_freq_band if hasattr(self, '_m_band_a_freq_band') else None
+            return self._m_band_masks if hasattr(self, '_m_band_masks') else None
 
         @property
-        def band_b_mode(self):
-            if hasattr(self, '_m_band_b_mode'):
-                return self._m_band_b_mode if hasattr(self, '_m_band_b_mode') else None
+        def bands(self):
+            if hasattr(self, '_m_bands'):
+                return self._m_bands if hasattr(self, '_m_bands') else None
 
-            _pos = self._io.pos()
-            self._io.seek(13)
-            self._m_band_b_mode = self._io.read_u1()
-            self._io.seek(_pos)
-            return self._m_band_b_mode if hasattr(self, '_m_band_b_mode') else None
+            self._raw__m_bands = [None] * (2)
+            self._m_bands = [None] * (2)
+            for i in range(2):
+                self._raw__m_bands[i] = self._io.read_bytes(12)
+                io = KaitaiStream(BytesIO(self._raw__m_bands[i]))
+                self._m_bands[i] = self._root.Band(i, io, self, self._root)
 
-        @property
-        def s_meter_squelch(self):
-            if hasattr(self, '_m_s_meter_squelch'):
-                return self._m_s_meter_squelch if hasattr(self, '_m_s_meter_squelch') else None
-
-            _pos = self._io.pos()
-            self._io.seek(21)
-            self._m_s_meter_squelch = self._io.read_u1()
-            self._io.seek(_pos)
-            return self._m_s_meter_squelch if hasattr(self, '_m_s_meter_squelch') else None
+            return self._m_bands if hasattr(self, '_m_bands') else None
 
         @property
-        def band_b_power(self):
-            if hasattr(self, '_m_band_b_power'):
-                return self._m_band_b_power if hasattr(self, '_m_band_b_power') else None
+        def power_on_message(self):
+            if hasattr(self, '_m_power_on_message'):
+                return self._m_power_on_message if hasattr(self, '_m_power_on_message') else None
 
             _pos = self._io.pos()
-            self._io.seek(19)
-            self._m_band_b_power = self._root.TxPower(self._io.read_u1())
+            self._io.seek(224)
+            self._m_power_on_message = (KaitaiStream.bytes_terminate(self._io.read_bytes(12), 0, False)).decode(u"ascii")
             self._io.seek(_pos)
-            return self._m_band_b_power if hasattr(self, '_m_band_b_power') else None
+            return self._m_power_on_message if hasattr(self, '_m_power_on_message') else None
+
+
+    class RepeaterConfig(KaitaiStruct):
+        def __init__(self, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self._read()
+
+        def _read(self):
+            self.crossband_repeat = self._io.read_u1()
+            self.wireless_remote = self._io.read_u1()
+            self.remote_id = self._io.read_bytes(3)
 
 
     class ChannelFlags(KaitaiStruct):
@@ -475,6 +576,21 @@ class Memory(KaitaiStruct):
             return self._m_dcs_code if hasattr(self, '_m_dcs_code') else None
 
 
+    class BandLimitList(KaitaiStruct):
+        def __init__(self, number, _io, _parent=None, _root=None):
+            self._io = _io
+            self._parent = _parent
+            self._root = _root if _root else self
+            self.number = number
+            self._read()
+
+        def _read(self):
+            self.list = [None] * (self.number)
+            for i in range(self.number):
+                self.list[i] = self._root.BandLimit(self._io, self, self._root)
+
+
+
     @property
     def channels(self):
         if hasattr(self, '_m_channels'):
@@ -505,6 +621,19 @@ class Memory(KaitaiStruct):
 
         self._io.seek(_pos)
         return self._m_program_memory if hasattr(self, '_m_program_memory') else None
+
+    @property
+    def misc_settings(self):
+        if hasattr(self, '_m_misc_settings'):
+            return self._m_misc_settings if hasattr(self, '_m_misc_settings') else None
+
+        _pos = self._io.pos()
+        self._io.seek(0)
+        self._raw__m_misc_settings = self._io.read_bytes(256)
+        io = KaitaiStream(BytesIO(self._raw__m_misc_settings))
+        self._m_misc_settings = self._root.MiscSettings(io, self, self._root)
+        self._io.seek(_pos)
+        return self._m_misc_settings if hasattr(self, '_m_misc_settings') else None
 
     @property
     def echolink_names(self):
