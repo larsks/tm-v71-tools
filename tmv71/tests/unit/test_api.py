@@ -180,7 +180,7 @@ def test_memory_dump(radio, serial):
 
 
 def test_memory_restore(radio, serial):
-    serial.stuff(b'0M\rW\x00\x00\x04')
+    serial.stuff(b'0M\rW\x00\x00' + struct.pack('B', len(radio.memory_magic)))
     serial.stuff(radio.memory_magic)
 
     # We will need to fake responses to 127 individual write
@@ -188,14 +188,25 @@ def test_memory_restore(radio, serial):
     serial.stuff(b'\x06' * 127)
     serial.stuff(b'\x06\x06\x06\x06\r\x00')
 
-    fd = io.BytesIO(radio.memory_magic + b'\x00' * 32508)
+    fd = io.BytesIO()
+    fill_data = b'\x01\x02\x03\x04'
+    fd.write(fill_data * (0x7f00//len(fill_data)))
+    fd.seek(0)
+    fd.write(radio.memory_magic)
+    fd.seek(0)
 
     with radio.programming_mode():
         radio.memory_restore(fd)
 
+    assert serial.rx.getvalue().endswith(
+        b'W~\x00\x00'
+        + fd.getvalue()[-256:]
+        + b'W\x00\x00\x02\x00KE'
+    )
+
 
 def test_memory_restore_bad_data(radio, serial):
-    serial.stuff(b'0M\rW\x00\x00\x04')
+    serial.stuff(b'0M\rW\x00\x00' + struct.pack('B', len(radio.memory_magic)))
     serial.stuff(radio.memory_magic)
     serial.stuff(b'\x06\x06\r\x00')
 
@@ -207,7 +218,7 @@ def test_memory_restore_bad_data(radio, serial):
 
 
 def test_memory_restore_short_data(radio, serial):
-    serial.stuff(b'0M\rW\x00\x00\x04')
+    serial.stuff(b'0M\rW\x00\x00' + struct.pack('B', len(radio.memory_magic)))
     serial.stuff(radio.memory_magic)
     serial.stuff(b'\x06\x06\x06\x06\r\x00')
 

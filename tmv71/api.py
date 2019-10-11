@@ -98,7 +98,7 @@ def pm(f):
 class TMV71:
     expected_id = 'TM-V71'
     memory_max = 0x7f
-    memory_magic = struct.pack('BBBB', 0x0, 0x4b, 0x01, 0xff)
+    memory_magic = struct.pack('BB', 0x0, 0x4b)
 
     def __init__(self, port, speed=9600, debug=False, timeout=0.5):
         self.port = port
@@ -590,8 +590,10 @@ class TMV71:
         the radio to reset to defaults if the write operation is
         interrupted.'''
 
+        magiclen = len(self.memory_magic)
+
         # Check that radio state seems sane
-        data = self.read_block(0, 4)
+        data = self.read_block(0, magiclen)
         if data != self.memory_magic:
             if force:
                 LOG.warning('Radio does not contain expected '
@@ -600,7 +602,7 @@ class TMV71:
                 raise ValueError('radio does not contain expected data')
 
         # Check that input data seems sane
-        data = fd.read(4)
+        data = fd.read(magiclen)
         if data != self.memory_magic:
             if force:
                 LOG.warning('Input does not contain expected '
@@ -610,8 +612,8 @@ class TMV71:
 
         self.write_block(0, b'\xff')
 
-        fd.seek(4)
-        self.write_block(0x04, fd.read(0xfc))
+        fd.seek(magiclen)
+        self.write_block(magiclen, fd.read(256 - magiclen))
 
         for block in range(1, self.memory_max):
             addr = block * 256
@@ -628,5 +630,5 @@ class TMV71:
 
 class TMD710(TMV71):
     expected_id = 'TM-D710'
-    memory_magic = struct.pack('BBBB', 0x0, 0x4D, 0x01, 0xff)
+    memory_magic = struct.pack('BB', 0x0, 0x4D)
     memory_max = 0xFF
