@@ -29,6 +29,12 @@ class Memory(KaitaiStruct):
     [1]: http://kaitai.io/
     """
 
+    class DataBand(Enum):
+        data_a = 0
+        data_b = 1
+        data_a_tx_b_rx = 2
+        data_a_rx_b_tx = 3
+
     class ShiftDirection(Enum):
         simplex = 0
         up = 1
@@ -58,6 +64,10 @@ class Memory(KaitaiStruct):
     class ChannelBand(Enum):
         vhf = 5
         uhf = 8
+
+    class DataSpeed(Enum):
+        b1200 = 0
+        b9600 = 1
 
     class TxPower(Enum):
         high = 0
@@ -163,6 +173,17 @@ class Memory(KaitaiStruct):
             self._m_remote_id = self._io.read_bytes(3)
             self._io.seek(_pos)
             return self._m_remote_id if hasattr(self, '_m_remote_id') else None
+
+        @property
+        def current_pm_channel(self):
+            if hasattr(self, '_m_current_pm_channel'):
+                return self._m_current_pm_channel if hasattr(self, '_m_current_pm_channel') else None
+
+            _pos = self._io.pos()
+            self._io.seek(22)
+            self._m_current_pm_channel = self._io.read_u1()
+            self._io.seek(_pos)
+            return self._m_current_pm_channel if hasattr(self, '_m_current_pm_channel') else None
 
         @property
         def key_lock(self):
@@ -496,6 +517,17 @@ class Memory(KaitaiStruct):
             return self._m_beep if hasattr(self, '_m_beep') else None
 
         @property
+        def data_speed(self):
+            if hasattr(self, '_m_data_speed'):
+                return self._m_data_speed if hasattr(self, '_m_data_speed') else None
+
+            _pos = self._io.pos()
+            self._io.seek(374)
+            self._m_data_speed = self._root.DataSpeed(self._io.read_u1())
+            self._io.seek(_pos)
+            return self._m_data_speed if hasattr(self, '_m_data_speed') else None
+
+        @property
         def current_menu_item(self):
             if hasattr(self, '_m_current_menu_item'):
                 return self._m_current_menu_item if hasattr(self, '_m_current_menu_item') else None
@@ -612,6 +644,17 @@ class Memory(KaitaiStruct):
             self._m_power_on_message = (KaitaiStream.bytes_terminate(self._io.read_bytes(12), 0, False)).decode(u"ascii")
             self._io.seek(_pos)
             return self._m_power_on_message if hasattr(self, '_m_power_on_message') else None
+
+        @property
+        def data_band(self):
+            if hasattr(self, '_m_data_band'):
+                return self._m_data_band if hasattr(self, '_m_data_band') else None
+
+            _pos = self._io.pos()
+            self._io.seek(373)
+            self._m_data_band = self._root.DataBand(self._io.read_u1())
+            self._io.seek(_pos)
+            return self._m_data_band if hasattr(self, '_m_data_band') else None
 
 
     class ChannelFlags(KaitaiStruct):

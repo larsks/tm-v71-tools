@@ -190,6 +190,9 @@ types:
       remote_id:
         pos: 0x12
         size: 3
+      current_pm_channel:
+        pos: 0x16
+        type: u1
       key_lock:
         pos: 0x17
         type: u1
@@ -342,6 +345,14 @@ types:
       beep_volume:
         pos: 0x151
         type: u1
+      data_band:
+        pos: 0x175
+        type: u1
+        enum: data_band
+      data_speed:
+        pos: 0x176
+        type: u1
+        enum: data_speed
       band_masks:
         pos: 0x180
         type: band_mask_list(5)
@@ -465,3 +476,11 @@ enums:
     0: off
     1: morse
     2: voice
+  data_band:
+    0: data_a
+    1: data_b
+    2: data_a_tx_b_rx
+    3: data_a_rx_b_tx
+  data_speed:
+    0: b1200
+    1: b9600
