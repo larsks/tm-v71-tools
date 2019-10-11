@@ -25,6 +25,10 @@ meta:
   ks-version: 0.8
   endian: le
 
+seq:
+  - id: magic
+    size: 2
+
 instances:
   tables:
     doc: |
@@ -35,7 +39,7 @@ instances:
   misc_settings:
     pos: 0x0
     type: misc_settings
-    size: 0x100
+    size: 0x200
 
   dtmf_codes:
     pos: 0x30
@@ -177,25 +181,35 @@ types:
 
   misc_settings:
     instances:
-      repeater_config:
+      crossband_repeat:
         pos: 0x10
-        type: repeater_config
+        type: u1
+      wireless_remote:
+        pos: 0x11
+        type: u1
+      remote_id:
+        pos: 0x12
+        size: 3
       key_lock:
         pos: 0x17
         type: u1
+      repeater_hold:
+        pos: 0x1E
+        type: u1
+      repeater_idtx:
+        pos: 0x1F
+        type: u1
+        enum: repeater_idtx
       pc_port_speed:
         pos: 0x21
         type: u1
         enum: port_speed
-
-  repeater_config:
-    seq:
-      - id: crossband_repeat
-        type: u1
-      - id: wireless_remote
-        type: u1
-      - id: remote_id
-        size: 3
+      repeater_id:
+        pos: 0x170
+        type: str
+        encoding: ascii
+        terminator: 0xff
+        size: 6
 
   common_vfo_fields:
     seq:
@@ -447,3 +461,7 @@ enums:
   display_mode:
     0: vfo
     1: memory
+  repeater_idtx:
+    0: off
+    1: morse
+    2: voice

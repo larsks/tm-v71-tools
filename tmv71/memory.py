@@ -15,14 +15,16 @@ class Memory(KaitaiStruct):
     
         ksc --target python --outdir tmv71 memory.ksy
     
-    This will generate `memory.py`, which you can then use like this:
+    This will generate `memory.py`.
+    
+    Example usage:
     
         from tmv71.memory import Memory
     
         data = Memory.from_file('my_dump_file.bin')
         for i, channel in enumerate(data.channels()):
-          print('channel {} rx frequency: {}'.format(
-                i, channel.common.rx_freq))
+          print('channel {} ({}) rx frequency: {}'.format(
+                i, channel.name, channel.common.rx_freq))
     
     [1]: http://kaitai.io/
     """
@@ -72,6 +74,11 @@ class Memory(KaitaiStruct):
         ctcss = 2
         tone = 4
         invalid = 7
+
+    class RepeaterIdtx(Enum):
+        false = 0
+        morse = 1
+        voice = 2
     def __init__(self, _io, _parent=None, _root=None):
         self._io = _io
         self._parent = _parent
@@ -79,7 +86,7 @@ class Memory(KaitaiStruct):
         self._read()
 
     def _read(self):
-        pass
+        self.magic = self._io.read_bytes(2)
 
     class MiscSettings(KaitaiStruct):
         def __init__(self, _io, _parent=None, _root=None):
@@ -92,15 +99,70 @@ class Memory(KaitaiStruct):
             pass
 
         @property
-        def repeater_config(self):
-            if hasattr(self, '_m_repeater_config'):
-                return self._m_repeater_config if hasattr(self, '_m_repeater_config') else None
+        def wireless_remote(self):
+            if hasattr(self, '_m_wireless_remote'):
+                return self._m_wireless_remote if hasattr(self, '_m_wireless_remote') else None
 
             _pos = self._io.pos()
-            self._io.seek(16)
-            self._m_repeater_config = self._root.RepeaterConfig(self._io, self, self._root)
+            self._io.seek(17)
+            self._m_wireless_remote = self._io.read_u1()
             self._io.seek(_pos)
-            return self._m_repeater_config if hasattr(self, '_m_repeater_config') else None
+            return self._m_wireless_remote if hasattr(self, '_m_wireless_remote') else None
+
+        @property
+        def repeater_hold(self):
+            if hasattr(self, '_m_repeater_hold'):
+                return self._m_repeater_hold if hasattr(self, '_m_repeater_hold') else None
+
+            _pos = self._io.pos()
+            self._io.seek(30)
+            self._m_repeater_hold = self._io.read_u1()
+            self._io.seek(_pos)
+            return self._m_repeater_hold if hasattr(self, '_m_repeater_hold') else None
+
+        @property
+        def repeater_id(self):
+            if hasattr(self, '_m_repeater_id'):
+                return self._m_repeater_id if hasattr(self, '_m_repeater_id') else None
+
+            _pos = self._io.pos()
+            self._io.seek(368)
+            self._m_repeater_id = (KaitaiStream.bytes_terminate(self._io.read_bytes(6), 255, False)).decode(u"ascii")
+            self._io.seek(_pos)
+            return self._m_repeater_id if hasattr(self, '_m_repeater_id') else None
+
+        @property
+        def pc_port_speed(self):
+            if hasattr(self, '_m_pc_port_speed'):
+                return self._m_pc_port_speed if hasattr(self, '_m_pc_port_speed') else None
+
+            _pos = self._io.pos()
+            self._io.seek(33)
+            self._m_pc_port_speed = self._root.PortSpeed(self._io.read_u1())
+            self._io.seek(_pos)
+            return self._m_pc_port_speed if hasattr(self, '_m_pc_port_speed') else None
+
+        @property
+        def repeater_idtx(self):
+            if hasattr(self, '_m_repeater_idtx'):
+                return self._m_repeater_idtx if hasattr(self, '_m_repeater_idtx') else None
+
+            _pos = self._io.pos()
+            self._io.seek(31)
+            self._m_repeater_idtx = self._root.RepeaterIdtx(self._io.read_u1())
+            self._io.seek(_pos)
+            return self._m_repeater_idtx if hasattr(self, '_m_repeater_idtx') else None
+
+        @property
+        def remote_id(self):
+            if hasattr(self, '_m_remote_id'):
+                return self._m_remote_id if hasattr(self, '_m_remote_id') else None
+
+            _pos = self._io.pos()
+            self._io.seek(18)
+            self._m_remote_id = self._io.read_bytes(3)
+            self._io.seek(_pos)
+            return self._m_remote_id if hasattr(self, '_m_remote_id') else None
 
         @property
         def key_lock(self):
@@ -114,15 +176,15 @@ class Memory(KaitaiStruct):
             return self._m_key_lock if hasattr(self, '_m_key_lock') else None
 
         @property
-        def pc_port_speed(self):
-            if hasattr(self, '_m_pc_port_speed'):
-                return self._m_pc_port_speed if hasattr(self, '_m_pc_port_speed') else None
+        def crossband_repeat(self):
+            if hasattr(self, '_m_crossband_repeat'):
+                return self._m_crossband_repeat if hasattr(self, '_m_crossband_repeat') else None
 
             _pos = self._io.pos()
-            self._io.seek(33)
-            self._m_pc_port_speed = self._root.PortSpeed(self._io.read_u1())
+            self._io.seek(16)
+            self._m_crossband_repeat = self._io.read_u1()
             self._io.seek(_pos)
-            return self._m_pc_port_speed if hasattr(self, '_m_pc_port_speed') else None
+            return self._m_crossband_repeat if hasattr(self, '_m_crossband_repeat') else None
 
 
     class ExtendedFlagBits(KaitaiStruct):
@@ -552,19 +614,6 @@ class Memory(KaitaiStruct):
             return self._m_power_on_message if hasattr(self, '_m_power_on_message') else None
 
 
-    class RepeaterConfig(KaitaiStruct):
-        def __init__(self, _io, _parent=None, _root=None):
-            self._io = _io
-            self._parent = _parent
-            self._root = _root if _root else self
-            self._read()
-
-        def _read(self):
-            self.crossband_repeat = self._io.read_u1()
-            self.wireless_remote = self._io.read_u1()
-            self.remote_id = self._io.read_bytes(3)
-
-
     class ChannelFlags(KaitaiStruct):
         """These flags are included in byte 6 of the channel entry.
         """
@@ -678,7 +727,7 @@ class Memory(KaitaiStruct):
 
         _pos = self._io.pos()
         self._io.seek(0)
-        self._raw__m_misc_settings = self._io.read_bytes(256)
+        self._raw__m_misc_settings = self._io.read_bytes(512)
         io = KaitaiStream(BytesIO(self._raw__m_misc_settings))
         self._m_misc_settings = self._root.MiscSettings(io, self, self._root)
         self._io.seek(_pos)
@@ -784,6 +833,10 @@ class Memory(KaitaiStruct):
 
     @property
     def channel_extended_flags(self):
+        """The TM-V71A appears to maintain some extended channel flags. At
+        the moment I have only identify the `lockout` flag, used to
+        skip a channel during scans.
+        """
         if hasattr(self, '_m_channel_extended_flags'):
             return self._m_channel_extended_flags if hasattr(self, '_m_channel_extended_flags') else None
 
