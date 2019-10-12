@@ -122,7 +122,8 @@ def test_set_port_speed(radio, serial):
 
 def test_get_channel_entry(radio, serial):
     serial.stuff(b'ME 000,0145430000,0,1,1,0,1,0,23,'
-                 b'23,000,00600000,0,0000000000,0,0\r')
+                 b'23,000,00600000,0,0000000000,0,0\r'
+                 b'MN 000,TEST\r')
     entry = radio.get_channel_entry(0)
     assert entry['rx_freq'] == 145.43
 
@@ -147,17 +148,22 @@ def test_set_channel_entry(radio, serial):
         'lockout': False,
         'admit': 'C',
         'tone': 146.2,
+        'name': 'TEST'
     }
     serial.stuff(b'ME 000,0145430000,0,1,1,0,1,0,23,'
                  b'23,000,00600000,0,0000000000,0,0\r'
-                 b'ME\r')
+                 b'MN 000,TEST\r'
+                 b'ME\r'
+                 b'MN 000,TEST\r'
+                 )
     entry = radio.get_channel_entry(0)
     assert entry == expected
     entry['lockout'] = True
     radio.set_channel_entry(0, entry)
-    assert serial.rx.getvalue() == (
-        b'ME 000\rME 000,0145430000,0,1,1,0,1,0,23,'
+    assert serial.rx.getvalue().endswith(
+        b'ME 000,0145430000,0,1,1,0,1,0,23,'
         b'23,000,00600000,0,0000000000,0,1\r'
+        b'MN 000,TEST\r'
     )
 
 

@@ -381,7 +381,6 @@ class TMV71:
         return res
 
     def set_channel_entry(self, channel, settings):
-        breakpoint()
         settings[channel] = channel
         self.send_command('ME', schema.ME_no_name.to_csv(settings))
         self.set_channel_name(channel, settings['name'])
