@@ -1,4 +1,5 @@
 import click
+import csv
 import enum
 import functools
 import hexdump
@@ -635,33 +636,29 @@ def entry(ctx, channel, name, **kwargs):
 @click.pass_obj
 @clear_first
 def export_channels(ctx, output, channels, skip_deleted):
-    '''Export channels to a CSJ document.
-
-    A CSJ document is like a CSV document, but each field is valid JSON.'''
+    '''Export channels to a CSV document'''
 
     selected = resolve_range(channels, range(1000))
     fields = schema.ME.export_fields
 
     with output:
-        output.write(','.join(list(fields) + ['name']))
+        output.write(','.join(list(fields)))
         output.write('\n')
+        writer = csv.DictWriter(output, fields)
         for channel in selected:
             LOG.info('getting information for channel %d', channel)
 
             try:
                 channel_config = ctx.api.get_channel_entry(channel)
-                values = [channel_config[x] for x in fields]
-                values.append(ctx.api.get_channel_name(channel))
 
-                output.write(','.join(json.dumps(x) for x in values))
-                output.write('\n')
+                # csv.DictWriter complains about unknown fields
+                channel_config = {k: channel_config[k] for k in fields}
+
+                writer.writerow(channel_config)
             except api.InvalidCommandError:
                 LOG.debug('channel %d does not exist', channel)
                 if not skip_deleted:
-                    output.write(','.join(
-                        [str(channel)]
-                        + [''] * (len(schema.ME.export_fields) - 1)))
-                    output.write('\n')
+                    writer.writerow({'channel': channel})
 
 
 @channel.command('import')
@@ -671,29 +668,26 @@ def export_channels(ctx, output, channels, skip_deleted):
 @click.pass_obj
 @clear_first
 def import_channels(ctx, input, sync, channels):
-    '''Import channels from a CSJ document.
-
-    A CSJ document is like a CSV document, but each field is valid JSON.
+    '''Import channels from a CSV document.
 
     Use --sync to delete channels on the radio that do not exist
     in the input document.'''
     selected = resolve_range(channels, range(1000))
-    fields = schema.ME.export_fields + ('name',)
+    fields = schema.ME.export_fields
 
     with input:
+        reader = csv.DictReader(input, fields)
         channelmap = {}
-        for line in input:
-            if line.startswith('channel'):
+        for row in reader:
+            # skip the header row
+            if row['channel'] == 'channel':
                 continue
-            line = line.rstrip()
-            values = line.split(',')
 
             # a deleted channel has no rx_freq
-            if not values[1]:
+            if not row['rx_freq']:
                 continue
 
-            values = dict(zip(fields, [json.loads(val) for val in values]))
-            channelmap[values['channel']] = values
+            channelmap[row['channel']] = row
 
         for channel in selected:
             if channel not in channelmap:
@@ -702,10 +696,7 @@ def import_channels(ctx, input, sync, channels):
                     ctx.api.delete_channel_entry(channel)
             else:
                 LOG.info('setting information for channel %d', channel)
-                channel_name = channelmap[channel]['name']
-
                 ctx.api.set_channel_entry(channel, channelmap[channel])
-                ctx.api.set_channel_name(channel, channel_name)
 
 # ----------------------------------------------------------------------
 

@@ -213,21 +213,23 @@ class RadioSchema(Schema):
         data = self.load(dict(zip(self.declared_fields, values)))
         return data
 
-    def to_tuple(self, obj):
+    def to_tuple(self, obj, **kwargs):
         '''Convert object to a tuple'''
 
-        data = self.dump(obj)
-        return [data[f] for f in self.declared_fields]
+        data = self.dump(obj, **kwargs)
+        return [data[f]
+                for f in self.declared_fields
+                if f in data]
 
     def from_csv(self, s):
         '''Read in values from a comma-separated string'''
 
         return self.from_tuple(s.split(','))
 
-    def to_csv(self, obj):
+    def to_csv(self, obj, **kwargs):
         '''Convert object to a comma-separated string'''
 
-        return ','.join(self.to_tuple(obj))
+        return ','.join(self.to_tuple(obj, **kwargs))
 
     def to_raw_tuple(self, obj):
         return [obj[f] for f in self.declared_fields]
@@ -272,7 +274,7 @@ class RadioFloat(Float):
             value = 0
 
         fmt = '{:0' + str(self.length) + 'd}'
-        return fmt.format(int(value * 1000000))
+        return fmt.format(int(float(value) * 1000000))
 
     def _deserialize(self, value, attr, data, **kwargs):
         return int(value) / 1000000.0
@@ -289,13 +291,13 @@ class FormattedInteger(Integer):
         self.fmt = fmt
 
     def _serialize(self, value, attr, obj, **kwargs):
-        return self.fmt.format(value)
+        return self.fmt.format(int(value))
 
 
 class ME_Schema(RadioSchema):
     channel = FormattedInteger('{:03d}', required=True)
     rx_freq = RadioFloat(required=True)
-    step = Indexed(STEP_SIZE, required=True)
+    step = Indexed(STEP_SIZE, required=True, type=float)
     shift = Indexed(SHIFT_DIRECTION, required=True)
     reverse = RadioBoolean(required=True)
     tone_status = RadioBoolean(required=True)
@@ -310,14 +312,15 @@ class ME_Schema(RadioSchema):
     offset = RadioFloat(length=8, required=True)
     mode = Indexed(MODE, required=True)
     tx_freq = RadioFloat(required=True)
-    tx_step = Indexed(STEP_SIZE, required=True)
+    tx_step = Indexed(STEP_SIZE, required=True, type=float)
     lockout = RadioBoolean(required=True)
+    name = String()
 
     export_fields = (
         'channel', 'rx_freq', 'step', 'shift',
         'reverse', 'admit', 'tone',
         'offset', 'mode', 'tx_freq', 'tx_step',
-        'lockout',
+        'lockout', 'name'
     )
 
     @post_load
@@ -476,6 +479,8 @@ class MU_Schema(RadioSchema):
     auto_pm_store = RadioBoolean(required=True)
     display_partition_bar = RadioBoolean(required=True)
 
+
+ME_no_name = ME_Schema(exclude=['name'])
 
 # Dynamically create instances of each schema
 

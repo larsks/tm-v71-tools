@@ -376,12 +376,15 @@ class TMV71:
 
     @schemacommand(schema.ME)
     def get_channel_entry(self, channel):
-        channel = '{:03d}'.format(channel)
-        return self.send_command('ME', channel)
+        res = self.send_command('ME', '{:03d}'.format(channel))
+        res.append(self.get_channel_name(channel))
+        return res
 
     def set_channel_entry(self, channel, settings):
+        breakpoint()
         settings[channel] = channel
-        return self.send_command('ME', schema.ME.to_csv(settings))
+        self.send_command('ME', schema.ME_no_name.to_csv(settings))
+        self.set_channel_name(channel, settings['name'])
 
     def delete_channel_entry(self, channel):
         channel = '{:03d}'.format(channel)
