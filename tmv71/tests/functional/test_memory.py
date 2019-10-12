@@ -13,7 +13,7 @@ def initial(request):
 
 
 def test_remote_id(initial):
-    assert initial.misc_settings.repeater_config.remote_id == b'000'
+    assert initial.misc_settings.remote_id == b'000'
 
 
 def test_port_speed(initial):
