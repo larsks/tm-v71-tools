@@ -1,4 +1,4 @@
-from marshmallow import Schema, post_load, validate
+from marshmallow import Schema, post_load, pre_dump, validate
 from marshmallow.fields import Field, String, Float, Boolean, Integer
 from marshmallow.validate import OneOf, Range
 
@@ -301,14 +301,60 @@ class ME_Schema(RadioSchema):
     tone_status = RadioBoolean(required=True)
     ctcss_status = RadioBoolean(required=True)
     dcs_status = RadioBoolean(required=True)
-    tone_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float)
-    ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float)
-    dcs_code = Indexed(values=DCS_CODE, required=True, fmt='{:03d}', type=int)
+    tone_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float,
+                        default=67)
+    ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float,
+                         default=67)
+    dcs_code = Indexed(values=DCS_CODE, required=True, fmt='{:03d}', type=int,
+                       default=23)
     offset = RadioFloat(length=8, required=True)
     mode = Indexed(MODE, required=True)
     tx_freq = RadioFloat(required=True)
     tx_step = Indexed(STEP_SIZE, required=True)
     lockout = RadioBoolean(required=True)
+
+    export_fields = (
+        'channel', 'rx_freq', 'step', 'shift',
+        'reverse', 'admit', 'tone',
+        'offset', 'mode', 'tx_freq', 'tx_step',
+        'lockout',
+    )
+
+    @post_load
+    def compute_admit_load(self, data, **kwargs):
+        if data['tone_status']:
+            data['admit'] = 'T'
+            data['tone'] = data['tone_freq']
+        elif data['ctcss_status']:
+            data['admit'] = 'C'
+            data['tone'] = data['ctcss_freq']
+        elif data['dcs_status']:
+            data['admit'] = 'D'
+            data['tone'] = data['dcs_code']
+        else:
+            data['admit'] = ''
+            data['tone'] = ''
+
+        return data
+
+    @pre_dump
+    def compute_admit_dump(self, obj, **kwargs):
+        admit = obj['admit']
+
+        obj['tone_status'] = obj['ctcss_status'] = \
+            obj['dcs_status'] = False
+
+        if admit == 'T':
+            obj['tone_status'] = True
+            obj['tone_freq'] = obj['tone']
+        elif admit == 'C':
+            obj['ctcss_status'] = True
+            obj['ctcss_freq'] = obj['tone']
+        elif admit == 'D':
+            obj['dcs_status'] = True
+            obj['dcs_code'] = obj['tone']
+
+        return obj
 
 
 class FO_Schema(RadioSchema):

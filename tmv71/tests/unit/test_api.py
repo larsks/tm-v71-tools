@@ -145,6 +145,8 @@ def test_set_channel_entry(radio, serial):
         'tx_freq': 0.0,
         'tx_step': 5,
         'lockout': False,
+        'admit': 'C',
+        'tone': 146.2,
     }
     serial.stuff(b'ME 000,0145430000,0,1,1,0,1,0,23,'
                  b'23,000,00600000,0,0000000000,0,0\r'

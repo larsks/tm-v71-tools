@@ -631,31 +631,37 @@ def entry(ctx, channel, name, **kwargs):
 @channel.command('export')
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
 @click.option('-c', '--channels', multiple=True)
+@click.option('-s', '--skip-deleted', is_flag=True)
 @click.pass_obj
 @clear_first
-def export_channels(ctx, output, channels):
+def export_channels(ctx, output, channels, skip_deleted):
     '''Export channels to a CSJ document.
 
     A CSJ document is like a CSV document, but each field is valid JSON.'''
 
     selected = resolve_range(channels, range(1000))
+    fields = schema.ME.export_fields
 
     with output:
-        output.write(','.join(list(schema.ME.declared_fields) + ['name']))
+        output.write(','.join(list(fields) + ['name']))
         output.write('\n')
         for channel in selected:
             LOG.info('getting information for channel %d', channel)
 
             try:
                 channel_config = ctx.api.get_channel_entry(channel)
-                values = channel_config.schema.to_raw_tuple(channel_config)
+                values = [channel_config[x] for x in fields]
                 values.append(ctx.api.get_channel_name(channel))
 
                 output.write(','.join(json.dumps(x) for x in values))
                 output.write('\n')
             except api.InvalidCommandError:
                 LOG.debug('channel %d does not exist', channel)
-                continue
+                if not skip_deleted:
+                    output.write(','.join(
+                        [str(channel)]
+                        + [''] * (len(schema.ME.export_fields) - 1)))
+                    output.write('\n')
 
 
 @channel.command('import')
@@ -672,6 +678,7 @@ def import_channels(ctx, input, sync, channels):
     Use --sync to delete channels on the radio that do not exist
     in the input document.'''
     selected = resolve_range(channels, range(1000))
+    fields = schema.ME.export_fields + ('name',)
 
     with input:
         channelmap = {}
@@ -679,8 +686,14 @@ def import_channels(ctx, input, sync, channels):
             if line.startswith('channel'):
                 continue
             line = line.rstrip()
-            values = [json.loads(x) for x in line.split(',')]
-            channelmap[values[0]] = values
+            values = line.split(',')
+
+            # a deleted channel has no rx_freq
+            if not values[1]:
+                continue
+
+            values = dict(zip(fields, [json.loads(val) for val in values]))
+            channelmap[values['channel']] = values
 
         for channel in selected:
             if channel not in channelmap:
@@ -689,10 +702,9 @@ def import_channels(ctx, input, sync, channels):
                     ctx.api.delete_channel_entry(channel)
             else:
                 LOG.info('setting information for channel %d', channel)
-                channel_config = schema.ME.from_raw_tuple(channelmap[channel])
-                channel_name = channelmap[channel][-1]
+                channel_name = channelmap[channel]['name']
 
-                ctx.api.set_channel_entry(channel, channel_config)
+                ctx.api.set_channel_entry(channel, channelmap[channel])
                 ctx.api.set_channel_name(channel, channel_name)
 
 # ----------------------------------------------------------------------
