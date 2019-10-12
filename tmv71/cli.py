@@ -459,7 +459,23 @@ def txpower(ctx, power, band):
 
 
 def resolve_range(rspec, default=None):
+    '''Resolves a range specification into a list of numbers.
+
+    A range specification is a list of numbers and ranges, where a range
+    is specified as lower_bound:upper_bound. Given a range specification
+    of the form:
+
+        [1, 3, 5, 7:10, 18:20]
+
+    The return value would be:
+
+        [1, 3, 5, 7, 8, 9, 10, 18, 19, 20]
+
+    This method is used by the channel import and export commands.
+    '''
+
     selected = default
+
     if rspec:
         selected = []
         for entry in rspec:
