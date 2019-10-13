@@ -603,3 +603,154 @@ Options:
   --help  Show this message and exit.
 ```
 
+<!-- end command docs -->
+
+## CLI Examples
+
+### Specify port and speed on the command line
+
+```
+tmv71 --port /dev/ttyS0 --speed 9600 id
+```
+
+### Export channels to a CSV
+
+```
+tmv71 channel export -o channels.csv
+```
+
+### Import channels from a CSV
+
+```
+tmv71 channel import -i channels.csv
+```
+
+### Export only channels 1-10
+
+```
+tmv71 channel export -o channels.csv -c 1:10
+```
+
+### Back up your radio
+
+```
+tmv71 memory dump -o backup.dat
+```
+
+### Restore from backup
+
+```
+tmv71 memory restore -i backup.dat
+```
+
+### Read from memory and write binary data to a file
+
+```
+tmv71 memory read-block -o data.bin 0
+```
+
+### Read from memory and display a hexdump
+
+```
+tmv71 memory read-block --hexdump 0
+```
+
+### Set port speed using write-block
+
+The PC port speed is stored as a byte at address 33 (`0x21`). The following command will set the PC port speed to 57600 bps:
+
+```
+tmv71 memory write-block -d '03' 0x21
+```
+
+## API Examples
+
+The following examples assume:
+
+```
+>>> from tmv71 import api
+>>> radio = api.TMV71(port='/dev/ttyUSB0', speed=57600)
+
+```
+
+### Get radio ID
+
+```
+>>> radio.radio_id()
+'TM-V71'
+
+```
+
+### Get a channel entry
+
+```
+>>> import pprint
+>>> pprint.pprint(radio.get_channel_entry(0), indent=2)
+{ 'channel': 0,
+  'ctcss_freq': 146.2,
+  'ctcss_status': True,
+  'dcs_code': 23,
+  'dcs_status': False,
+  'lockout': False,
+  'mode': 'FM',
+  'name': 'MRABEL',
+  'offset': 0.6,
+  'reverse': False,
+  'rx_freq': 145.43,
+  'shift': 'DOWN',
+  'step': 5.0,
+  'tone_freq': 67.0,
+  'tone_status': False,
+  'tx_freq': 0.0,
+  'tx_step': 5.0}
+
+```
+
+### Setting a channel entry
+
+```
+>>> entry = radio.get_channel_entry(0)
+>>> entry['rx_freq'] = 145.43
+>>> radio.set_channel_entry(0, entry)
+>>>
+```
+
+### Get the port speed
+
+The get/set port speed methods rely on direct memory access, which means the radio must be in programming mode before we can use them. The `programming_mode` decorator takes care of entering programming mode and exiting it when the command exits.
+
+```
+>>> with radio.programming_mode():
+...   radio.get_port_speed()
+...
+'57600'
+
+```
+
+
+## Author
+
+Lars Kellogg-Stedman <lars@oddbit.com>, N1LKS
+
+If you're around the Boston area, you can sometimes find me on the [MMRA][] or [BARC][] repeaters.
+
+[MMRA]: https://www.mmra.org/
+[BARC]: http://barc.org/
+
+## License
+
+tm-v71-tools - an api and cli for your Kenwood TM-V71  
+Copyright (C) 2019 Lars Kellogg-Stedman
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
