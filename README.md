@@ -20,7 +20,33 @@ pip install git+https://github.com/larsks/tm-v71-tools
 
 ## Configuration
 
-You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass the `--port` and `--speed` options to the `tmv71` command.
+### Configuration file
+
+Tmv71 will read configuration `~/.config/tmv71.json`, if it exists. This file may specify the following configuration keys:
+
+- `port=<device>`
+- `speed=<bps>`
+- `no_clear=(true|false)`
+- `clear_retries=<n>`
+- `verbose=<n>`
+
+For example:
+
+```
+{
+  "port": "/dev/ttyKEYSPAN",
+  "speed": 57600,
+  "verbose": 1
+}
+```
+
+### Environment variables
+
+Any command line option can be set from an environment variable named `TMV71_<option>`. For example, you can set the `TMV71_PORT` and `TMV71_SPEED` environment variables instead of passing `--port` and `--speed` on the command line.
+
+For subcommands, you need to include the subcommand name as part of the variable name.  For example, to pass the `--channels 1:10` option to `tmv71 channel export`, you would set:
+
+    TMV71_CHANNEL_EXPORT_CHANNELS=1:10
 
 ## Available commands
 
@@ -30,7 +56,7 @@ You can set the `TMV71_PORT` and `TMV71_SPEED` environment variables, or pass th
 - [port-speed](#port-speed)
 - [ptt](#ptt)
 - [set](#set)
-- [send-dtmf][#send-dtmf]
+- [send-dtmf](#send-dtmf)
 - [band mode](#band-mode)
 - [band select](#band-select)
 - [band reverse](#band-reverse)
@@ -192,6 +218,19 @@ Options:
   --help                          Show this message and exit.
 ```
 
+### send-dtmf
+
+```
+Usage: tmv71 send-dtmf [OPTIONS] [TONES]...
+
+  Send DTMF tones
+
+Options:
+  -w, --wait
+  --slow / --fast
+  --help           Show this message and exit.
+```
+
 ### band mode
 
 ```
@@ -310,7 +349,7 @@ Options:
   --ctcss-freq [67.0|69.3|71.9|74.4|77.0|79.7|82.5|85.4|88.5|91.5|94.8|97.4|100.0|103.5|107.2|110.9|114.8|118.8|123.0|127.3|131.8|136.5|141.3|146.2|151.4|156.7|162.2|167.9|173.8|179.9|186.2|192.8|203.5|240.7|210.7|218.1|225.7|229.1|233.6|241.8|250.3|254.1]
   --dcs-code [23|25|26|31|32|36|43|47|51|53|54|65|71|72|73|74|114|115|116|122|125|131|132|134|143|145|152|155|156|162|165|172|174|205|212|223|225|226|243|244|245|246|251|252|255|261|263|265|266|271|274|306|311|315|325|331|332|343|346|351|356|364|365|371|411|412|413|423|431|432|445|446|452|454|455|462|464|465|466|503|506|516|523|565|532|546|565|606|612|624|627|631|632|654|662|664|703|712|723|731|732|734|743|754]
   --offset FLOAT
-  --mode [FM|AM|NFM]
+  --mode [FM|NFM|AM]
   --tx-freq FLOAT
   --tx-step [5|6.25|28.33|10|12.5|15|20|25|30|50|100]
   --lockout / --no-lockout
@@ -327,13 +366,13 @@ Options:
 ```
 Usage: tmv71 channel export [OPTIONS]
 
-  Export channels to a CSJ document.
-
-  A CSJ document is like a CSV document, but each field is valid JSON.
+  Export channels to a CSV document
 
 Options:
   -o, --output FILENAME
-  -c, --channels TEXT
+  -c, --channels TEXT    Specify a single chanel (-c 1) or a range of channels
+                         (-c 1:10)
+  -s, --skip-deleted     Do not export deleted channels
   --help                 Show this message and exit.
 ```
 
@@ -342,17 +381,15 @@ Options:
 ```
 Usage: tmv71 channel import [OPTIONS]
 
-  Import channels from a CSJ document.
-
-  A CSJ document is like a CSV document, but each field is valid JSON.
-
-  Use --sync to delete channels on the radio that do not exist in the input
-  document.
+  Import channels from a CSV document
 
 Options:
   -i, --input FILENAME
-  -s, --sync
-  -c, --channels TEXT
+  -s, --sync            Delete channels from the radio that do not exist in
+                        input
+  -c, --channels TEXT   Specify a single chanel (-c 1) or a range of channels
+                        (-c 1:10)
+  --continue            Continue to import channels if there is an error
   --help                Show this message and exit.
 ```
 
@@ -375,7 +412,11 @@ Usage: tmv71 info firmware [OPTIONS]
   Return information about the radio firmware.
 
 Options:
-  --help  Show this message and exit.
+  -F, --format [shell|table|json]
+  -T, --table-format [fancy_grid|github|grid|html|jira|latex|latex_booktabs|latex_raw|mediawiki|moinmoin|orgtbl|pipe|plain|presto|psql|rst|simple|textile|tsv|youtrack]
+  -K, --key TEXT                  Limit output to the specified key (may be
+                                  specified multiple times)
+  --help                          Show this message and exit.
 ```
 
 ### info id
@@ -397,7 +438,11 @@ Usage: tmv71 info serial [OPTIONS]
   Return information about the radio firmware.
 
 Options:
-  --help  Show this message and exit.
+  -F, --format [shell|table|json]
+  -T, --table-format [fancy_grid|github|grid|html|jira|latex|latex_booktabs|latex_raw|mediawiki|moinmoin|orgtbl|pipe|plain|presto|psql|rst|simple|textile|tsv|youtrack]
+  -K, --key TEXT                  Limit output to the specified key (may be
+                                  specified multiple times)
+  --help                          Show this message and exit.
 ```
 
 ### info type
@@ -520,7 +565,7 @@ Options:
 ### vfo tune
 
 ```
-Usage: tmv71 vfo tune [OPTIONS] [A|B]
+Usage: tmv71 vfo tune [OPTIONS] [A|B|0|1]
 
   Get or set VFO frequency and other settings.
 
@@ -528,7 +573,6 @@ Usage: tmv71 vfo tune [OPTIONS] [A|B]
   band command to change bands.
 
 Options:
-  --band [A|B]
   --rx-freq FLOAT
   --step [5|6.25|28.33|10|12.5|15|20|25|30|50|100]
   --shift [SIMPLEX|UP|DOWN|SPLIT]
@@ -540,7 +584,7 @@ Options:
   --ctcss-freq [67.0|69.3|71.9|74.4|77.0|79.7|82.5|85.4|88.5|91.5|94.8|97.4|100.0|103.5|107.2|110.9|114.8|118.8|123.0|127.3|131.8|136.5|141.3|146.2|151.4|156.7|162.2|167.9|173.8|179.9|186.2|192.8|203.5|240.7|210.7|218.1|225.7|229.1|233.6|241.8|250.3|254.1]
   --dcs-code [23|25|26|31|32|36|43|47|51|53|54|65|71|72|73|74|114|115|116|122|125|131|132|134|143|145|152|155|156|162|165|172|174|205|212|223|225|226|243|244|245|246|251|252|255|261|263|265|266|271|274|306|311|315|325|331|332|343|346|351|356|364|365|371|411|412|413|423|431|432|445|446|452|454|455|462|464|465|466|503|506|516|523|565|532|546|565|606|612|624|627|631|632|654|662|664|703|712|723|731|732|734|743|754]
   --offset FLOAT
-  --mode [FM|AM|NFM]
+  --mode [FM|NFM|AM]
   -F, --format [shell|table|json]
   -T, --table-format [fancy_grid|github|grid|html|jira|latex|latex_booktabs|latex_raw|mediawiki|moinmoin|orgtbl|pipe|plain|presto|psql|rst|simple|textile|tsv|youtrack]
   -K, --key TEXT                  Limit output to the specified key (may be
@@ -559,153 +603,3 @@ Options:
   --help  Show this message and exit.
 ```
 
-<!-- end command docs -->
-
-## CLI Examples
-
-### Specify port and speed on the command line
-
-```
-tmv71 --port /dev/ttyS0 --speed 9600 id
-```
-
-### Export channels to a CSV
-
-```
-tmv71 channel export -o channels.csv
-```
-
-### Import channels from a CSV
-
-```
-tmv71 channel import -i channels.csv
-```
-
-### Export only channels 1-10
-
-```
-tmv71 channel export -o channels.csv -c 1:10
-```
-
-### Back up your radio
-
-```
-tmv71 memory dump -o backup.dat
-```
-
-### Restore from backup
-
-```
-tmv71 memory restore -i backup.dat
-```
-
-### Read from memory and write binary data to a file
-
-```
-tmv71 memory read-block -o data.bin 0
-```
-
-### Read from memory and display a hexdump
-
-```
-tmv71 memory read-block --hexdump 0
-```
-
-### Set port speed using write-block
-
-The PC port speed is stored as a byte at address 33 (`0x21`). The following command will set the PC port speed to 57600 bps:
-
-```
-tmv71 memory write-block -d '03' 0x21
-```
-
-## API Examples
-
-The following examples assume:
-
-```
->>> from tmv71 import api
->>> radio = api.TMV71(port='/dev/ttyUSB0', speed=57600)
-
-```
-
-### Get radio ID
-
-```
->>> radio.radio_id()
-['TM-V71']
-
-```
-
-### Get a channel entry
-
-```
->>> import pprint
->>> pprint.pprint(radio.get_channel_entry(0), indent=2)
-{ 'channel': 0,
-  'ctcss_freq': 146.2,
-  'ctcss_status': True,
-  'dcs_freq': 23,
-  'dcs_status': False,
-  'lockout': False,
-  'mode': 'FM',
-  'offset': 0.6,
-  'reverse': False,
-  'rx_freq': 145.43,
-  'shift': 'DOWN',
-  'step': 5,
-  'tone_freq': 146.2,
-  'tone_status': False,
-  'tx_freq': 0.0,
-  'tx_step': 5}
-
-```
-
-### Setting a channel entry
-
-```
->>> entry = radio.get_channel_entry(0)
->>> entry['rx_freq'] = 145.43
->>> radio.set_channel_entry(0, entry)
-['']
-
-```
-
-### Get the port speed
-
-The get/set port speed methods rely on direct memory access, which means the radio must be in programming mode before we can use them. The `programming_mode` decorating takes care of entering programming mode and exiting it when the command exits.
-
-```
->>> with radio.programming_mode():
-...   radio.get_port_speed()
-...
-'57600'
-
-```
-
-## Contributing
-
-You are welcome to contribute to this project!  Submit [bug reports][], comments, or [pull requests][] to the GitHub project.
-
-[bug reports]: https://github.com/larsks/tm-v71-tools/issues
-[pull requests]: https://github.com/larsks/tm-v71-tools/pulls
-
-## Author
-
-Lars Kellogg-Stedman <lars@oddbit.com>, N1LKS
-
-If you're around the Boston area, you can sometimes find me on the [MMRA][] or [BARC][] repeaters.
-
-[MMRA]: https://www.mmra.org/
-[BARC]: http://barc.org/
-
-## License
-
-tm-v71-tools - an api and cli for your Kenwood TM-V71  
-Copyright (C) 2019 Lars Kellogg-Stedman
-
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
