@@ -6,6 +6,7 @@
 awk '/<!-- start command list -->/,/<!-- end command list -->/ {print}' "$1" |
 	sed -n '/^- / s/- \[\(.*\)](.*)$/\1/p' |
 	xargs -iCMD sh -c '
+		echo "Processing CMD" >&2;
 		echo "### CMD";
 		echo;
 		echo "\`\`\`";
