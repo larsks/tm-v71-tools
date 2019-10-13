@@ -714,6 +714,19 @@ def import_channels(ctx, input, sync, channels):
                 LOG.info('setting information for channel %d', channel)
                 ctx.api.set_channel_entry(channel, channelmap[channel])
 
+
+@channel.command('delete')
+@click.option('-c', '--channels', multiple=True)
+@click.pass_obj
+@clear_first
+def delete_channels(ctx, channels):
+    selected = resolve_range(channels, [])
+
+    for channel in selected:
+        LOG.info('deleting channel %d', channel)
+        ctx.api.delete_channel_entry(channel)
+
+
 # ----------------------------------------------------------------------
 
 
