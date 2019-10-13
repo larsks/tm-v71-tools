@@ -647,8 +647,11 @@ def entry(ctx, channel, name, **kwargs):
 
 @channel.command('export')
 @click.option('-o', '--output', type=click.File('w'), default=sys.stdout)
-@click.option('-c', '--channels', multiple=True)
-@click.option('-s', '--skip-deleted', is_flag=True)
+@click.option('-c', '--channels', multiple=True,
+              help='Specify a single chanel (-c 1) or '
+              'a range of channels (-c 1:10)')
+@click.option('-s', '--skip-deleted', is_flag=True,
+              help='Do not export deleted channels')
 @click.pass_obj
 @clear_first
 def export_channels(ctx, output, channels, skip_deleted):
@@ -679,16 +682,19 @@ def export_channels(ctx, output, channels, skip_deleted):
 
 @channel.command('import')
 @click.option('-i', '--input', type=click.File('r'), default=sys.stdin)
-@click.option('-s', '--sync', is_flag=True)
-@click.option('-c', '--channels', multiple=True)
-@click.option('--continue', '_continue', is_flag=True)
+@click.option('-s', '--sync', is_flag=True,
+              help='Delete channels from the radio '
+              'that do not exist in input')
+@click.option('-c', '--channels', multiple=True,
+              help='Specify a single chanel (-c 1) or '
+              'a range of channels (-c 1:10)')
+@click.option('--continue', '_continue', is_flag=True,
+              help='Continue to import channels if there is an error')
 @click.pass_obj
 @clear_first
 def import_channels(ctx, input, sync, channels, _continue):
-    '''Import channels from a CSV document.
+    '''Import channels from a CSV document'''
 
-    Use --sync to delete channels on the radio that do not exist
-    in the input document.'''
     selected = resolve_range(channels, range(1000))
     fields = schema.ME.export_fields
 
@@ -723,10 +729,14 @@ def import_channels(ctx, input, sync, channels, _continue):
 
 
 @channel.command('delete')
-@click.option('-c', '--channels', multiple=True)
+@click.option('-c', '--channels', multiple=True,
+              help='Specify a single chanel (-c 1) or '
+              'a range of channels (-c 1:10)')
 @click.pass_obj
 @clear_first
 def delete_channels(ctx, channels):
+    '''Delete a channel or range of channels'''
+
     selected = resolve_range(channels, [])
 
     for channel in selected:
