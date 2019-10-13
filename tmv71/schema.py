@@ -191,7 +191,7 @@ DCS_CODE = [
 
 SHIFT_DIRECTION = ['SIMPLEX', 'UP', 'DOWN', 'SPLIT']
 
-MODE = ['FM', 'AM', 'NFM']
+MODE = ['FM', 'NFM', 'AM']
 
 
 class SchemaDict(dict):
