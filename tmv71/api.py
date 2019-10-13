@@ -21,7 +21,11 @@ M_OFFSET_OPERATING_MODE = 0x10
 M_OFFSET_REMOTE_ID = 0x12
 
 
-class CommunicationError(Exception):
+class RadioError(Exception):
+    pass
+
+
+class CommunicationError(RadioError):
     def __init__(self, msg=None):
         super().__init__(msg or self.__doc__)
 
@@ -49,7 +53,7 @@ class ReadTimeoutError(CommunicationError):
     '''A read operation timed out'''
 
 
-class WrongModeError(CommunicationError):
+class WrongModeError(RadioError):
     '''Radio is not in programming mode'''
 
 
