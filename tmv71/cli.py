@@ -681,9 +681,10 @@ def export_channels(ctx, output, channels, skip_deleted):
 @click.option('-i', '--input', type=click.File('r'), default=sys.stdin)
 @click.option('-s', '--sync', is_flag=True)
 @click.option('-c', '--channels', multiple=True)
+@click.option('--continue', '_continue', is_flag=True)
 @click.pass_obj
 @clear_first
-def import_channels(ctx, input, sync, channels):
+def import_channels(ctx, input, sync, channels, _continue):
     '''Import channels from a CSV document.
 
     Use --sync to delete channels on the radio that do not exist
@@ -703,7 +704,7 @@ def import_channels(ctx, input, sync, channels):
             if not row['rx_freq']:
                 continue
 
-            channelmap[row['channel']] = row
+            channelmap[int(row['channel'])] = row
 
         for channel in selected:
             if channel not in channelmap:
@@ -712,7 +713,13 @@ def import_channels(ctx, input, sync, channels):
                     ctx.api.delete_channel_entry(channel)
             else:
                 LOG.info('setting information for channel %d', channel)
-                ctx.api.set_channel_entry(channel, channelmap[channel])
+                try:
+                    ctx.api.set_channel_entry(channel, channelmap[channel])
+                except api.InvalidCommandError:
+                    if _continue:
+                        LOG.warning('Unable to set channel %d', channel)
+                    else:
+                        raise
 
 
 @channel.command('delete')
