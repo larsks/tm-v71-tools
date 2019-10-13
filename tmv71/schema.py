@@ -281,8 +281,10 @@ class RadioFloat(Float):
 
 
 class RadioBoolean(Boolean):
+    truthy = [1, '1', 'true', 'True', 'TRUE', True]
+
     def _serialize(self, value, attr, obj, **kwargs):
-        return '1' if value else '0'
+        return '1' if value in self.truthy else '0'
 
 
 class FormattedInteger(Integer):
