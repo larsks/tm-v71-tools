@@ -304,8 +304,8 @@ class TMV71:
         return self.send_command('BC')
 
     @schemacommand(schema.BC)
-    def set_ptt_ctrl(self, ctrl_band, ptt_band):
-        return self.send_command('BC', ctrl_band, ptt_band)
+    def set_ptt_ctrl(self, ctrl, ptt):
+        return self.send_command('BC', ctrl, ptt)
 
     def set_ptt(self, ptt_state):
         if ptt_state:

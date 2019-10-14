@@ -121,3 +121,13 @@ def test_info_firmware(runner, serial, environ):
     assert res.exit_code == 0
     data = json.loads(res.output)
     assert data == dict(unit=0, v1='1.0', v2='2.0', v3='A', v4='1')
+
+
+def test_band_select(runner, serial, environ):
+    serial.stuff(b'BC 1,1\r')
+    serial.stuff(b'DL 0\r')
+    serial.stuff(b'BC 1,1\r')
+    res = runner.invoke(cli.main, ['band', 'select', 'B', '-F', 'json'])
+    assert res.exit_code == 0
+    data = json.loads(res.output)
+    assert data == dict(ctrl=1, ptt=1, mode='dual')

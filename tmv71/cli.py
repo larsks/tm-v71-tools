@@ -422,11 +422,11 @@ def band_select(ctx, band, which, mode):
 
         if mode:
             if mode == 1:
-                cur_state['ctrl_band'] = cur_state['ptt'] = band
+                cur_state['ctrl'] = cur_state['ptt'] = band
                 cur_mode = ctx.api.set_single_band_mode()
         else:
             if which == 'control':
-                cur_state['ctrl_band'] = band
+                cur_state['ctrl'] = band
             elif which == 'ptt':
                 cur_state['ptt'] = band
             else:
