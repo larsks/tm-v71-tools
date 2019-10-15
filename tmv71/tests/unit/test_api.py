@@ -132,7 +132,7 @@ def test_set_channel_entry(radio, serial):
     expected = {
         'channel': 0,
         'rx_freq': 145.43,
-        'step': 5,
+        'rx_step': 5,
         'shift': 'UP',
         'reverse': True,
         'tone_status': False,
@@ -484,7 +484,7 @@ def test_get_band_vfo(radio, serial):
         reverse=False,
         rx_freq=145.43,
         shift='DOWN',
-        step=5,
+        rx_step=5,
         tone_freq=146.2,
         tone_status=False,
     )
@@ -508,7 +508,7 @@ def test_set_band_vfo(radio, serial):
         reverse=False,
         rx_freq=144.0,
         shift='DOWN',
-        step=5,
+        rx_step=5,
         tone_freq=146.2,
         tone_status=False,
     )
@@ -534,7 +534,7 @@ def test_get_call_channel(radio, serial):
         tone_status=False,
         dcs_code=23,
         ctcss_freq=88.5,
-        step=5,
+        rx_step=5,
         shift='SIMPLEX'
     )
 
