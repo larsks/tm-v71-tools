@@ -1,5 +1,4 @@
 import click
-import csv
 import enum
 import functools
 import hexdump
@@ -458,7 +457,7 @@ def txpower(ctx, power, band):
     print(schema.TX_POWER[res])
 
 
-def resolve_range(rspec, default=None):
+def resolve_range(rspec):
     '''Resolves a range specification into a list of numbers.
 
     A range specification is a list of numbers and ranges, where a range
@@ -474,10 +473,9 @@ def resolve_range(rspec, default=None):
     This method is used by the channel import and export commands.
     '''
 
-    selected = default
+    selected = []
 
     if rspec:
-        selected = []
         for entry in rspec:
             if ':' in entry:
                 r_start, r_end = (int(x) for x in entry.split(':'))
@@ -657,27 +655,12 @@ def entry(ctx, channel, name, **kwargs):
 def export_channels(ctx, output, channels, skip_deleted):
     '''Export channels to a CSV document'''
 
-    selected = resolve_range(channels, range(1000))
-    fields = schema.ME.export_fields
+    selected = resolve_range(channels)
 
     with output:
-        output.write(','.join(list(fields)))
-        output.write('\n')
-        writer = csv.DictWriter(output, fields)
-        for channel in selected:
-            LOG.info('getting information for channel %d', channel)
-
-            try:
-                channel_config = ctx.api.get_channel_entry(channel)
-
-                # csv.DictWriter complains about unknown fields
-                channel_config = {k: channel_config[k] for k in fields}
-
-                writer.writerow(channel_config)
-            except api.InvalidCommandError:
-                LOG.debug('channel %d does not exist', channel)
-                if not skip_deleted:
-                    writer.writerow({'channel': channel})
+        ctx.api.export_channels(output,
+                                selected=selected,
+                                skip_deleted=skip_deleted)
 
 
 @channel.command('import')
@@ -688,44 +671,19 @@ def export_channels(ctx, output, channels, skip_deleted):
 @click.option('-c', '--channels', multiple=True,
               help='Specify a single chanel (-c 1) or '
               'a range of channels (-c 1:10)')
-@click.option('--continue', '_continue', is_flag=True,
+@click.option('-I', '--ignore-errors', 'ignore_errors', is_flag=True,
               help='Continue to import channels if there is an error')
 @click.pass_obj
 @clear_first
-def import_channels(ctx, input, sync, channels, _continue):
+def import_channels(ctx, input, sync, channels, ignore_errors):
     '''Import channels from a CSV document'''
 
-    selected = resolve_range(channels, range(1000))
-    fields = schema.ME.export_fields
+    selected = resolve_range(channels)
 
     with input:
-        reader = csv.DictReader(input, fields)
-        channelmap = {}
-        for row in reader:
-            # skip the header row
-            if row['channel'] == 'channel':
-                continue
-
-            # a deleted channel has no rx_freq
-            if not row['rx_freq']:
-                continue
-
-            channelmap[int(row['channel'])] = row
-
-        for channel in selected:
-            if channel not in channelmap:
-                if sync:
-                    LOG.info('deleting channel %d', channel)
-                    ctx.api.delete_channel_entry(channel)
-            else:
-                LOG.info('setting information for channel %d', channel)
-                try:
-                    ctx.api.set_channel_entry(channel, channelmap[channel])
-                except api.InvalidCommandError:
-                    if _continue:
-                        LOG.warning('Unable to set channel %d', channel)
-                    else:
-                        raise
+        ctx.api.import_channels(input,
+                                selected=selected,
+                                ignore_errors=ignore_errors)
 
 
 @channel.command('delete')
@@ -737,7 +695,7 @@ def import_channels(ctx, input, sync, channels, _continue):
 def delete_channels(ctx, channels):
     '''Delete a channel or range of channels'''
 
-    selected = resolve_range(channels, [])
+    selected = resolve_range(channels)
 
     for channel in selected:
         LOG.info('deleting channel %d', channel)

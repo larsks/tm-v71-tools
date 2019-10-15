@@ -548,3 +548,39 @@ def test_set_call_channel(radio, serial):
     res['rx_freq'] = 144.0
     res = radio.set_call_channel(0, res)
     assert s2 in serial.rx.getvalue()
+
+
+def test_export_channels(radio, serial):
+    expected = (
+        'channel,rx_freq,rx_step,shift,reverse,admit,tone,offset,'
+        'mode,tx_freq,tx_step,lockout,name\r\n'
+        '0,145.43,5.0,UP,True,C,146.2,0.6,FM,0.0,5.0,False,TEST\r\n'
+    )
+    serial.stuff(
+        b'ME 000,0145430000,0,1,1,0,1,0,23,'
+        b'23,000,00600000,0,0000000000,0,0\r'
+        b'MN 000,TEST\r'
+    )
+
+    buf = io.StringIO()
+    radio.export_channels(buf, selected=[0])
+    assert buf.getvalue() == expected
+
+
+def test_import_channels(radio, serial):
+    expected = (
+        b'ME 000,0145430000,0,1,1,0,1,0,0,23,000,00600000,'
+        b'0,0000000000,0,0\rMN 000,TEST\r'
+    )
+    buf = io.StringIO(
+        'channel,rx_freq,rx_step,shift,reverse,admit,tone,offset,'
+        'mode,tx_freq,tx_step,lockout,name\r\n'
+        '0,145.43,5.0,UP,True,C,146.2,0.6,FM,0.0,5.0,False,TEST\r\n'
+    )
+    serial.stuff(
+        b'ME 000,0145430000,0,1,1,0,1,0,23,'
+        b'23,000,00600000,0,0000000000,0,0\r'
+        b'MN 000,TEST\r'
+    )
+    radio.import_channels(buf, selected=[0])
+    assert serial.rx.getvalue() == expected
