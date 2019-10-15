@@ -319,7 +319,7 @@ class ME_Schema(RadioSchema):
     name = String()
 
     export_fields = (
-        'channel', 'rx_freq', 'step', 'shift',
+        'channel', 'rx_freq', 'rx_step', 'shift',
         'reverse', 'admit', 'tone',
         'offset', 'mode', 'tx_freq', 'tx_step',
         'lockout', 'name'
