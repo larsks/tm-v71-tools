@@ -339,7 +339,7 @@ Usage: tmv71 channel entry [OPTIONS] CHANNEL
 Options:
   --channel INTEGER
   --rx-freq FLOAT
-  --step [5|6.25|28.33|10|12.5|15|20|25|30|50|100]
+  --rx-step [5|6.25|28.33|10|12.5|15|20|25|30|50|100]
   --shift [SIMPLEX|UP|DOWN|SPLIT]
   --reverse / --no-reverse
   --tone-status / --no-tone-status
@@ -389,7 +389,7 @@ Options:
                         input
   -c, --channels TEXT   Specify a single chanel (-c 1) or a range of channels
                         (-c 1:10)
-  --continue            Continue to import channels if there is an error
+  -I, --ignore-errors   Continue to import channels if there is an error
   --help                Show this message and exit.
 ```
 
@@ -574,7 +574,7 @@ Usage: tmv71 vfo tune [OPTIONS] [A|B|0|1]
 
 Options:
   --rx-freq FLOAT
-  --step [5|6.25|28.33|10|12.5|15|20|25|30|50|100]
+  --rx-step [5|6.25|28.33|10|12.5|15|20|25|30|50|100]
   --shift [SIMPLEX|UP|DOWN|SPLIT]
   --reverse / --no-reverse
   --tone-status / --no-tone-status

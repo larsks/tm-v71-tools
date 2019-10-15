@@ -299,7 +299,7 @@ class FormattedInteger(Integer):
 class ME_Schema(RadioSchema):
     channel = FormattedInteger('{:03d}', required=True)
     rx_freq = RadioFloat(required=True)
-    step = Indexed(STEP_SIZE, required=True, type=float)
+    rx_step = Indexed(STEP_SIZE, required=True, type=float)
     shift = Indexed(SHIFT_DIRECTION, required=True)
     reverse = RadioBoolean(required=True)
     tone_status = RadioBoolean(required=True)
@@ -365,7 +365,7 @@ class ME_Schema(RadioSchema):
 class FO_Schema(RadioSchema):
     band = FormattedInteger(required=True, validate=Range(0, 1))
     rx_freq = RadioFloat(required=True)
-    step = Indexed(values=STEP_SIZE, required=True)
+    rx_step = Indexed(values=STEP_SIZE, required=True, type=float)
     shift = Indexed(SHIFT_DIRECTION, required=True)
     reverse = RadioBoolean(required=True)
     tone_status = RadioBoolean(required=True)
@@ -381,7 +381,7 @@ class FO_Schema(RadioSchema):
 class CC_Schema(RadioSchema):
     index = FormattedInteger(required=True)
     rx_freq = RadioFloat(required=True)
-    step = Indexed(values=STEP_SIZE, required=True)
+    rx_step = Indexed(values=STEP_SIZE, required=True, type=float)
     shift = Indexed(SHIFT_DIRECTION, required=True)
     reverse = RadioBoolean(required=True)
     tone_status = RadioBoolean(required=True)
