@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+import csv
 from functools import wraps
 import hexdump
 import logging
@@ -632,6 +633,79 @@ class TMV71:
         self.write_block(0, self.memory_magic)
 
     # ----------------------------------------------------------------------
+
+    def import_channels(self, fd, selected=None, ignore_errors=False,
+                        sync=False):
+        """Import channels from a CSV document.
+
+        - fd: A file-like object
+        - selected: A list of channels to import. If this is None
+          (or empty), try to import all channels.
+        - ignore_errors: if a channel cannot be imported, continue
+          trying to import subsequent channels
+        - sync: delete channels in the radio that are not present
+          in the input.
+        """
+
+        selected = selected if selected else range(1000)
+        fields = schema.ME.export_fields
+
+        reader = csv.DictReader(fd, fields)
+        channelmap = {}
+        for row in reader:
+            # skip the header row if we find one
+            if row["channel"] == "channel":
+                continue
+
+            # a deleted channel has no rx_freq
+            if not row["rx_freq"]:
+                continue
+
+            channelmap[int(row["channel"])] = row
+
+        for channel in selected:
+            if channel not in channelmap:
+                if sync:
+                    LOG.info("deleting channel %d", channel)
+                    self.delete_channel_entry(channel)
+            else:
+                LOG.info("setting information for channel %d", channel)
+                try:
+                    self.set_channel_entry(channel, channelmap[channel])
+                except InvalidCommandError:
+                    if ignore_errors:
+                        LOG.warning("Unable to set channel %d", channel)
+                    else:
+                        raise
+
+    def export_channels(self, fd, selected=None, skip_deleted=False):
+        """Export channels to a CSV document
+
+        - fd: A file-like object
+        - selected: A list of channels to export. If this is None
+          (or empty), try to export all channels.
+        - skip_deleted: do not emit entries for deleted channels.
+        """
+
+        selected = selected if selected else range(1000)
+        fields = schema.ME.export_fields
+
+        writer = csv.DictWriter(fd, fields)
+        writer.writeheader()
+        for channel in selected:
+            LOG.info("getting information for channel %d", channel)
+
+            try:
+                channel_config = self.get_channel_entry(channel)
+
+                # csv.DictWriter complains about unknown fields
+                channel_config = {k: channel_config[k] for k in fields}
+
+                writer.writerow(channel_config)
+            except InvalidCommandError:
+                LOG.debug("channel %d does not exist", channel)
+                if not skip_deleted:
+                    writer.writerow({"channel": channel})
 
 
 class TMD710(TMV71):
