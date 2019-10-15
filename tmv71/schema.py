@@ -2,40 +2,48 @@ from marshmallow import Schema, post_load, pre_dump, validate
 from marshmallow.fields import Field, String, Float, Boolean, Integer
 from marshmallow.validate import OneOf, Range
 
-BANDS = ['A', 'B']
-BAND_MODE = ['VFO', 'MEM', 'CALL', 'WX']
-TX_POWER = ['HIGH', 'MED', 'LOW']
-ANNOUNCE = ['OFF', 'AUTO', 'MANUAL']
-LANGUAGE = ['English', 'Japanese']
-SQL_HANG_TIME = ['OFF', '125', '250', '500']
-MUTE_HANG_TIME = ['OFF', '125', '250', '500', '750', '1000']
-RECALL_METHOD = ['ALL', 'CURRENT']
-SPEED = ['FAST', 'SLOW']
-DTMF_PAUSE = ['100', '250', '500', '750', '1000', '1500', '2000']
-BACKLIGHT_COLOR = ['AMBER', 'GREEN']
-KEY_FUNCTIONS = ['WX', 'FREQBAND', 'CTRL', 'MONITOR', 'VGS', 'VOICE',
-                 'GROUP_UP', 'MENU', 'MUTE', 'SHIFT', 'DUAL',
-                 'MEM_TO_VFO', 'VFO', 'MR', 'CALL', 'MHZ',
-                 'TONE', 'REV', 'LOW', 'LOCK', 'A_B', 'ENTER',
-                 '1750HZ']
-SCAN_RESUME = ['TIME', 'CARRIER', 'SEEK']
-APO = ['OFF', '30', '60', '90', '120', '180']
-EXT_DATA_BAND = ['A', 'B', 'TXA_RXB', 'TXB_RXA']
-EXT_DATA_SPEED = ['1200', '9600']
-SQC_SOURCE = ['OFF', 'BUSY', 'SQL', 'TX', 'BUSY_TX', 'SQL_TX']
-STEP_SIZE = [
-    5,
-    6.25,
-    28.33,
-    10,
-    12.5,
-    15,
-    20,
-    25,
-    30,
-    50,
-    100,
+BANDS = ["A", "B"]
+BAND_MODE = ["VFO", "MEM", "CALL", "WX"]
+TX_POWER = ["HIGH", "MED", "LOW"]
+ANNOUNCE = ["OFF", "AUTO", "MANUAL"]
+LANGUAGE = ["English", "Japanese"]
+SQL_HANG_TIME = ["OFF", "125", "250", "500"]
+MUTE_HANG_TIME = ["OFF", "125", "250", "500", "750", "1000"]
+RECALL_METHOD = ["ALL", "CURRENT"]
+SPEED = ["FAST", "SLOW"]
+DTMF_PAUSE = ["100", "250", "500", "750", "1000", "1500", "2000"]
+BACKLIGHT_COLOR = ["AMBER", "GREEN"]
+KEY_FUNCTIONS = [
+    "WX",
+    "FREQBAND",
+    "CTRL",
+    "MONITOR",
+    "VGS",
+    "VOICE",
+    "GROUP_UP",
+    "MENU",
+    "MUTE",
+    "SHIFT",
+    "DUAL",
+    "MEM_TO_VFO",
+    "VFO",
+    "MR",
+    "CALL",
+    "MHZ",
+    "TONE",
+    "REV",
+    "LOW",
+    "LOCK",
+    "A_B",
+    "ENTER",
+    "1750HZ",
 ]
+SCAN_RESUME = ["TIME", "CARRIER", "SEEK"]
+APO = ["OFF", "30", "60", "90", "120", "180"]
+EXT_DATA_BAND = ["A", "B", "TXA_RXB", "TXB_RXA"]
+EXT_DATA_SPEED = ["1200", "9600"]
+SQC_SOURCE = ["OFF", "BUSY", "SQL", "TX", "BUSY_TX", "SQL_TX"]
+STEP_SIZE = [5, 6.25, 28.33, 10, 12.5, 15, 20, 25, 30, 50, 100]
 
 TONE_FREQUENCY = [
     67.0,
@@ -189,9 +197,9 @@ DCS_CODE = [
     754,
 ]
 
-SHIFT_DIRECTION = ['SIMPLEX', 'UP', 'DOWN', 'SPLIT']
+SHIFT_DIRECTION = ["SIMPLEX", "UP", "DOWN", "SPLIT"]
 
-MODE = ['FM', 'NFM', 'AM']
+MODE = ["FM", "NFM", "AM"]
 
 
 class SchemaDict(dict):
@@ -205,31 +213,29 @@ class SchemaDict(dict):
 
 class RadioSchema(Schema):
     def from_tuple(self, values):
-        '''Read in values from a tuple
+        """Read in values from a tuple
 
         Order of items in tuple must match order of declared fields
-        for this schema.'''
+        for this schema."""
 
         data = self.load(dict(zip(self.declared_fields, values)))
         return data
 
     def to_tuple(self, obj, **kwargs):
-        '''Convert object to a tuple'''
+        """Convert object to a tuple"""
 
         data = self.dump(obj, **kwargs)
-        return [data[f]
-                for f in self.declared_fields
-                if f in data]
+        return [data[f] for f in self.declared_fields if f in data]
 
     def from_csv(self, s):
-        '''Read in values from a comma-separated string'''
+        """Read in values from a comma-separated string"""
 
-        return self.from_tuple(s.split(','))
+        return self.from_tuple(s.split(","))
 
     def to_csv(self, obj, **kwargs):
-        '''Convert object to a comma-separated string'''
+        """Convert object to a comma-separated string"""
 
-        return ','.join(self.to_tuple(obj, **kwargs))
+        return ",".join(self.to_tuple(obj, **kwargs))
 
     def to_raw_tuple(self, obj):
         return [obj[f] for f in self.declared_fields]
@@ -243,7 +249,7 @@ class RadioSchema(Schema):
 
 
 class Indexed(Field):
-    def __init__(self, values, fmt='{}', int_base=10, type=None, **kwargs):
+    def __init__(self, values, fmt="{}", int_base=10, type=None, **kwargs):
         super().__init__(**kwargs)
         self.values = values
         self.fmt = fmt
@@ -273,7 +279,7 @@ class RadioFloat(Float):
         if value is None:
             value = 0
 
-        fmt = '{:0' + str(self.length) + 'd}'
+        fmt = "{:0" + str(self.length) + "d}"
         return fmt.format(int(float(value) * 1000000))
 
     def _deserialize(self, value, attr, data, **kwargs):
@@ -281,14 +287,14 @@ class RadioFloat(Float):
 
 
 class RadioBoolean(Boolean):
-    truthy = [1, '1', 'true', 'True', 'TRUE', True]
+    truthy = [1, "1", "true", "True", "TRUE", True]
 
     def _serialize(self, value, attr, obj, **kwargs):
-        return '1' if value in self.truthy else '0'
+        return "1" if value in self.truthy else "0"
 
 
 class FormattedInteger(Integer):
-    def __init__(self, fmt='{}', **kwargs):
+    def __init__(self, fmt="{}", **kwargs):
         super().__init__(**kwargs)
         self.fmt = fmt
 
@@ -297,7 +303,7 @@ class FormattedInteger(Integer):
 
 
 class ME_Schema(RadioSchema):
-    channel = FormattedInteger('{:03d}', required=True)
+    channel = FormattedInteger("{:03d}", required=True)
     rx_freq = RadioFloat(required=True)
     rx_step = Indexed(STEP_SIZE, required=True, type=float)
     shift = Indexed(SHIFT_DIRECTION, required=True)
@@ -305,12 +311,11 @@ class ME_Schema(RadioSchema):
     tone_status = RadioBoolean(required=True)
     ctcss_status = RadioBoolean(required=True)
     dcs_status = RadioBoolean(required=True)
-    tone_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float,
-                        default=67)
-    ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float,
-                         default=67)
-    dcs_code = Indexed(values=DCS_CODE, required=True, fmt='{:03d}', type=int,
-                       default=23)
+    tone_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float, default=67)
+    ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float, default=67)
+    dcs_code = Indexed(
+        values=DCS_CODE, required=True, fmt="{:03d}", type=int, default=23
+    )
     offset = RadioFloat(length=8, required=True)
     mode = Indexed(MODE, required=True)
     tx_freq = RadioFloat(required=True)
@@ -319,45 +324,53 @@ class ME_Schema(RadioSchema):
     name = String()
 
     export_fields = (
-        'channel', 'rx_freq', 'rx_step', 'shift',
-        'reverse', 'admit', 'tone',
-        'offset', 'mode', 'tx_freq', 'tx_step',
-        'lockout', 'name'
+        "channel",
+        "rx_freq",
+        "rx_step",
+        "shift",
+        "reverse",
+        "admit",
+        "tone",
+        "offset",
+        "mode",
+        "tx_freq",
+        "tx_step",
+        "lockout",
+        "name",
     )
 
     @post_load
     def compute_admit_load(self, data, **kwargs):
-        if data['tone_status']:
-            data['admit'] = 'T'
-            data['tone'] = data['tone_freq']
-        elif data['ctcss_status']:
-            data['admit'] = 'C'
-            data['tone'] = data['ctcss_freq']
-        elif data['dcs_status']:
-            data['admit'] = 'D'
-            data['tone'] = data['dcs_code']
+        if data["tone_status"]:
+            data["admit"] = "T"
+            data["tone"] = data["tone_freq"]
+        elif data["ctcss_status"]:
+            data["admit"] = "C"
+            data["tone"] = data["ctcss_freq"]
+        elif data["dcs_status"]:
+            data["admit"] = "D"
+            data["tone"] = data["dcs_code"]
         else:
-            data['admit'] = ''
-            data['tone'] = ''
+            data["admit"] = ""
+            data["tone"] = ""
 
         return data
 
     @pre_dump
     def compute_admit_dump(self, obj, **kwargs):
-        admit = obj['admit']
+        admit = obj["admit"]
 
-        obj['tone_status'] = obj['ctcss_status'] = \
-            obj['dcs_status'] = False
+        obj["tone_status"] = obj["ctcss_status"] = obj["dcs_status"] = False
 
-        if admit == 'T':
-            obj['tone_status'] = True
-            obj['tone_freq'] = obj['tone']
-        elif admit == 'C':
-            obj['ctcss_status'] = True
-            obj['ctcss_freq'] = obj['tone']
-        elif admit == 'D':
-            obj['dcs_status'] = True
-            obj['dcs_code'] = obj['tone']
+        if admit == "T":
+            obj["tone_status"] = True
+            obj["tone_freq"] = obj["tone"]
+        elif admit == "C":
+            obj["ctcss_status"] = True
+            obj["ctcss_freq"] = obj["tone"]
+        elif admit == "D":
+            obj["dcs_status"] = True
+            obj["dcs_code"] = obj["tone"]
 
         return obj
 
@@ -373,7 +386,7 @@ class FO_Schema(RadioSchema):
     dcs_status = RadioBoolean(required=True)
     tone_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float)
     ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True, type=float)
-    dcs_code = Indexed(values=DCS_CODE, required=True, fmt='{:03d}', type=int)
+    dcs_code = Indexed(values=DCS_CODE, required=True, fmt="{:03d}", type=int)
     offset = RadioFloat(length=8, required=True)
     mode = Indexed(MODE, required=True)
 
@@ -387,19 +400,17 @@ class CC_Schema(RadioSchema):
     tone_status = RadioBoolean(required=True)
     ctcss_status = RadioBoolean(required=True)
     dcs_status = RadioBoolean(required=True)
-    tone_freq = Indexed(values=TONE_FREQUENCY, required=True,
-                        fmt='{:02d}', type=float)
-    ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True,
-                         fmt='{:02d}', type=float)
-    dcs_code = Indexed(values=DCS_CODE, required=True, fmt='{:03d}', type=int)
+    tone_freq = Indexed(values=TONE_FREQUENCY, required=True, fmt="{:02d}", type=float)
+    ctcss_freq = Indexed(values=TONE_FREQUENCY, required=True, fmt="{:02d}", type=float)
+    dcs_code = Indexed(values=DCS_CODE, required=True, fmt="{:03d}", type=int)
     offset = RadioFloat(length=8, required=True)
     mode = Indexed(MODE, required=True)
     tx_freq = RadioFloat(required=True)
-    unknown = String(missing='0')
+    unknown = String(missing="0")
 
 
 class TY_Schema(RadioSchema):
-    model = String(validate=OneOf('K', 'M'))
+    model = String(validate=OneOf("K", "M"))
     mars_tx_expansion = Integer()
     max_tx_expansion = Integer()
     crossband = Integer()
@@ -427,69 +438,65 @@ class FV_Schema(RadioSchema):
 # 0,4,0,1,0,4,1,0,10,0,0,0,0,0,0,2,0,0,0,0,2,0,1,0,0,8,0,0,00,02,14,0D,0C,15,0,0,0,0,0,4,1,1
 class MU_Schema(RadioSchema):
     beep = RadioBoolean(required=True)
-    beep_volume = FormattedInteger(
-        validate=validate.Range(min=0, max=7),
-        required=True)
+    beep_volume = FormattedInteger(validate=validate.Range(min=0, max=7), required=True)
     external_speaker_mode = FormattedInteger(
-        validate=validate.Range(min=0, max=2), required=True)
-    announce = Indexed(ANNOUNCE, fmt='{:02X}', required=True)
-    language = Indexed(LANGUAGE, fmt='{:02X}', required=True)
-    voice_volume = FormattedInteger(validate=validate.Range(min=0, max=7),
-                                    required=True)
-    voice_speed = FormattedInteger(validate=validate.Range(min=0, max=4),
-                                   required=True)
+        validate=validate.Range(min=0, max=2), required=True
+    )
+    announce = Indexed(ANNOUNCE, fmt="{:02X}", required=True)
+    language = Indexed(LANGUAGE, fmt="{:02X}", required=True)
+    voice_volume = FormattedInteger(
+        validate=validate.Range(min=0, max=7), required=True
+    )
+    voice_speed = FormattedInteger(validate=validate.Range(min=0, max=4), required=True)
     playback_repeat = RadioBoolean(required=True)
     playback_repeat_interval = FormattedInteger(
-        validate=validate.Range(min=0, max=60), required=True)
+        validate=validate.Range(min=0, max=60), required=True
+    )
     continous_recording = RadioBoolean(required=True)
     vhf_aip = RadioBoolean(required=True)
     uhf_aip = RadioBoolean(required=True)
-    s_meter_sql_hang_time = Indexed(SQL_HANG_TIME, fmt='{:02X}', required=True)
-    mute_hang_time = Indexed(MUTE_HANG_TIME, fmt='{:02X}', required=True)
+    s_meter_sql_hang_time = Indexed(SQL_HANG_TIME, fmt="{:02X}", required=True)
+    mute_hang_time = Indexed(MUTE_HANG_TIME, fmt="{:02X}", required=True)
     beatshift = RadioBoolean(required=True)
     timeout_timer = FormattedInteger(
-        validate=validate.Range(min=0, max=3),
-        required=True)
-    recall_method = Indexed(RECALL_METHOD, fmt='{:02X}', required=True)
-    echolink_speed = Indexed(SPEED, fmt='{:02X}', required=True)
+        validate=validate.Range(min=0, max=3), required=True
+    )
+    recall_method = Indexed(RECALL_METHOD, fmt="{:02X}", required=True)
+    echolink_speed = Indexed(SPEED, fmt="{:02X}", required=True)
     dtmf_hold = RadioBoolean(required=True)
-    dtmf_speed = Indexed(SPEED, fmt='{:02X}', required=True)
-    dtmf_pause = Indexed(DTMF_PAUSE, fmt='{:02X}', required=True)
+    dtmf_speed = Indexed(SPEED, fmt="{:02X}", required=True)
+    dtmf_pause = Indexed(DTMF_PAUSE, fmt="{:02X}", required=True)
     dtmf_key_lock = RadioBoolean(required=True)
     auto_repeater_offset = RadioBoolean(required=True)
     hold_1750hz = RadioBoolean(required=True)
     unknown = String()
     brightness_level = FormattedInteger(required=True)
     auto_brightness = RadioBoolean(required=True)
-    backlight_color = Indexed(BACKLIGHT_COLOR, fmt='{:02X}', required=True)
-    pf1_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True, int_base=16)
-    pf2_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}', required=True, int_base=16)
-    mic_pf1_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}',
-                          required=True, int_base=16)
-    mic_pf2_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}',
-                          required=True, int_base=16)
-    mic_pf3_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}',
-                          required=True, int_base=16)
-    mic_pf4_key = Indexed(KEY_FUNCTIONS, fmt='{:02X}',
-                          required=True, int_base=16)
+    backlight_color = Indexed(BACKLIGHT_COLOR, fmt="{:02X}", required=True)
+    pf1_key = Indexed(KEY_FUNCTIONS, fmt="{:02X}", required=True, int_base=16)
+    pf2_key = Indexed(KEY_FUNCTIONS, fmt="{:02X}", required=True, int_base=16)
+    mic_pf1_key = Indexed(KEY_FUNCTIONS, fmt="{:02X}", required=True, int_base=16)
+    mic_pf2_key = Indexed(KEY_FUNCTIONS, fmt="{:02X}", required=True, int_base=16)
+    mic_pf3_key = Indexed(KEY_FUNCTIONS, fmt="{:02X}", required=True, int_base=16)
+    mic_pf4_key = Indexed(KEY_FUNCTIONS, fmt="{:02X}", required=True, int_base=16)
     mic_key_lock = RadioBoolean(required=True)
-    scan_resume = Indexed(SCAN_RESUME, fmt='{:02X}', required=True)
-    apo = Indexed(APO, fmt='{:02X}', required=True)
-    ext_data_band = Indexed(EXT_DATA_BAND, fmt='{:02X}', required=True)
-    ext_data_speed = Indexed(EXT_DATA_SPEED, fmt='{:02X}', required=True)
-    sqc_source = Indexed(SQC_SOURCE, fmt='{:02X}', required=True)
+    scan_resume = Indexed(SCAN_RESUME, fmt="{:02X}", required=True)
+    apo = Indexed(APO, fmt="{:02X}", required=True)
+    ext_data_band = Indexed(EXT_DATA_BAND, fmt="{:02X}", required=True)
+    ext_data_speed = Indexed(EXT_DATA_SPEED, fmt="{:02X}", required=True)
+    sqc_source = Indexed(SQC_SOURCE, fmt="{:02X}", required=True)
     auto_pm_store = RadioBoolean(required=True)
     display_partition_bar = RadioBoolean(required=True)
 
 
-ME_no_name = ME_Schema(exclude=['name'])
+ME_no_name = ME_Schema(exclude=["name"])
 
 # Dynamically create instances of each schema
 
 _classes = list(locals().values())
 _globals = globals()
 for cls in _classes:
-    name = getattr(cls, '__name__', None)
-    if name and name.endswith('_Schema'):
+    name = getattr(cls, "__name__", None)
+    if name and name.endswith("_Schema"):
         varname = name[:-7]
         _globals[varname] = cls()
