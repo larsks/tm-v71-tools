@@ -6,7 +6,7 @@ from fakeserial import FakeSerialPortFactory
 
 @pytest.fixture
 def serial(monkeypatch):
-    monkeypatch.setattr(api.serial, 'Serial', FakeSerialPortFactory)
-    port = FakeSerialPortFactory('dummy', register=True)
+    monkeypatch.setattr(api.serial, "Serial", FakeSerialPortFactory)
+    port = FakeSerialPortFactory("dummy", register=True)
     port.clear()
     return port

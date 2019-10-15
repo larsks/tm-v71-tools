@@ -52,7 +52,7 @@ class FakeSerialPort:
 
         return data
 
-    def read_until(self, terminator=b'\n', size=None):
+    def read_until(self, terminator=b"\n", size=None):
         acc = []
         while True:
             res = self.read()
@@ -63,7 +63,7 @@ class FakeSerialPort:
             if res == terminator or (size is not None and len(acc) >= size):
                 break
 
-        return b''.join(acc)
+        return b"".join(acc)
 
     def write(self, data):
         return self.rx.write(data)
@@ -79,6 +79,4 @@ class FakeSerialPort:
 
 
 def FakeSerialPortFactory(name, *args, **kwargs):
-    return FakeSerialPort.ports.get(name,
-                                    FakeSerialPort(name, *args,
-                                                   **kwargs))
+    return FakeSerialPort.ports.get(name, FakeSerialPort(name, *args, **kwargs))
