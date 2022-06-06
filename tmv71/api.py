@@ -275,10 +275,10 @@ class TMV71:
         return bool(self.send_command("LK", 1 if lock_state else 0)[0])
 
     def get_poweron_message(self):
-        return self.send_command("MS")[0]
+        return self.send_command("MS")
 
     def set_poweron_message(self, msg):
-        return self.send_command("MS", msg)[0]
+        return self.send_command("MS", msg)
 
     def get_dual_band_mode(self):
         return int(self.send_command("DL")[0])
