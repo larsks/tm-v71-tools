@@ -105,7 +105,7 @@ class TMV71:
 
     def __init__(self, port, speed=9600, debug=False, timeout=0.5):
         self.port = port
-        self.speed = speed
+        self.speed = int(speed)
         self.debug = debug
         self.timeout = timeout
         self._programming_mode = False
