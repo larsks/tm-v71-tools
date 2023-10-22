@@ -120,8 +120,8 @@ class TMV71:
         self._port = serial.Serial(
             self.port,
             baudrate=self.speed,
-            rtscts=True,
-            dsrdtr=True,
+            rtscts=False,
+            dsrdtr=False,
             timeout=self.timeout,
         )
 
