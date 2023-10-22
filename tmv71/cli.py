@@ -282,7 +282,7 @@ def poweron_message(ctx, message):
     else:
         res = ctx.api.set_poweron_message(message)
 
-    print(res[0])
+    print(res)
 
 
 def normalize_band(band):
