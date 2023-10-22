@@ -319,7 +319,7 @@ def lock(ctx, lock_state):
     else:
         res = ctx.api.set_lock_state(lock_state)
 
-    print(*res)
+    print("Locked" if res else "Unlocked")
 
 
 @main.command()

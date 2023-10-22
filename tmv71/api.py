@@ -268,7 +268,7 @@ class TMV71:
 
     def get_lock_state(self):
         """Get the current state of the key lock"""
-        return bool(self.send_command("LK")[0])
+        return bool(int(self.send_command("LK")[0]))
 
     def set_lock_state(self, lock_state):
         """Set the current state of the key lock"""
